@@ -49,4 +49,55 @@ const servers = {
   }
 };
 
-module.exports = servers;
+const devServers = {
+  rivals: {
+    name: 'rivals',
+    guild: '1350533330327830588',
+    claim: '1350533485512753307',
+    'admin-role': '1350533529028661371',
+    'customer-role': '1350533583130988574',
+    'reviews-channel': '1350533807035514941'
+  },
+  'anime-vanguards': {
+    name: 'anime-vanguards',
+    guild: '1350533330327830588',
+    claim: '1350533485512753307',
+    'admin-role': '1350533529028661371',
+    'customer-role': '1350533583130988574',
+    'reviews-channel': '1350533807035514941'
+  },
+  'blox-fruits': {
+    name: 'blox-fruits',
+    guild: '1350533330327830588',
+    claim: '1350533485512753307',
+    'admin-role': '1350533529028661371',
+    'customer-role': '1350533583130988574',
+    'reviews-channel': '1350533807035514941'
+  },
+  'bloxy-market': {
+    name: 'bloxy-market',
+    guild: '1350533330327830588',
+    claim: '1350533485512753307',
+    'admin-role': '1350533529028661371',
+    'customer-role': '1350533583130988574',
+    'reviews-channel': '1350533807035514941'
+  },
+  'pets-go': {
+    name: 'pets-go',
+    guild: '1350533330327830588',
+    claim: '1350533485512753307',
+    'admin-role': '1350533529028661371',
+    'customer-role': '1350533583130988574',
+    'reviews-channel': '1350533807035514941'
+  },
+  'king-legacy': {
+    name: 'king-legacy',
+    guild: '1350533330327830588',
+    claim: '1350533485512753307',
+    'admin-role': '1350533529028661371',
+    'customer-role': '1350533583130988574',
+    'reviews-channel': '1350533807035514941'
+  }
+};
+
+module.exports = devServers;
