@@ -101,7 +101,7 @@ Whenever using, or developing features for the bot, ensure to set these environm
 
 ### Server Configuration <a name="server-configuration"></a>
 
-The `servers` object (in `bot.js`) defines configurations for each supported Discord server:
+The `servers` object (in `server-config.js`) defines configurations for each supported Discord server:
 
 ```javascript
 const servers = {
