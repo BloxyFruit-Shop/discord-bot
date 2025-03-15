@@ -1,9 +1,9 @@
 {
   "name": "bloxyfruit-bot",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "bloxyfruit-bot.js",
   "scripts": {
-    "start": "node --env-file=.env index.js"
+    "start": "node --env-file=.env bloxyfruit-bot.js"
   },
   "author": "",
   "license": "ISC",
