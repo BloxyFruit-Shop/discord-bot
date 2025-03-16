@@ -41,10 +41,11 @@ The bot is designed to manage a ticketing system for order fulfillment across mu
 
 7. [Slash Commands](#slash-commands)
 
-- `/fulfill-order`
-- `/delete-completed`
-- `/delete-ticket`
-- `/cancel-order`
+- [`/fulfill-order`](#fulfill-order)
+- [`/delete-completed`](#delete-completed)
+- [`/delete-ticket`](#delete-ticket)
+- [`/cancel-order`](#cancel-order)
+- [`/generate-transcript`](#generate-transcript)
 
 8. [Data Structures](#data-structures)
 
@@ -111,7 +112,8 @@ const servers = {
     claim: '123456789',
     'admin-role': '123456789',
     'customer-role': '123456789',
-    'reviews-channel': '123456789'
+    'reviews-channel': '123456789',
+    transcript: '123456789'
   }
 };
 ```
@@ -124,6 +126,7 @@ Each server configuration includes:
 - **`admin-role`**: The ID of the role that grants users permission to use administrative slash commands.
 - **`customer-role`**: The ID of the role assigned to users after their order is fulfilled.
 - **`reviews-channel`**: The ID of the channel where users are prompted to leave reviews after order completion.
+- **`transcript`**: The ID of the channel where the transcript of the ticket conversation is meant to be send after fulfillment.
 
 ### Ticket Timeout <a name="ticket-timeout"></a>
 
@@ -361,6 +364,16 @@ The bot provides the following slash commands for staff members:
   - Sets order status to `cancelled`.
   - Changes channel's name.
 
+### `/generate-transcript` <a name="generate-transcript"></a>
+
+- **Description:** Generates a transcript of the ticket conversation. This command is only meant to be used in case of an error with the automatic transcript generation. If the ticket doesn't exist in the internal ticketStages data structure, the command will fail.
+- **Permissions:** Requires the `admin-role`.
+- **Usage:** Must be used within a ticket channel.
+- **Actions:**
+  - Fetches the ticket channel's messages.
+  - Generates a transcript of the messages as an HTML document.
+  - Sends the transcript as a file attachment to the channel specified in `server-config.js` under the attribute `transcript`.
+
 ## 8. Data Structures <a name="data-structures"></a>
 
 ### `servers` <a name="servers"></a>
@@ -407,6 +420,7 @@ This module exports functions that return pre-configured `EmbedBuilder` instance
 - **`createTicketExistsEmbed(orderId, existingChannelId, language, client)`**: Duplicate ticket message.
 - **`createCompletionMessageEmbed(language, reviewsChannelId, client)`**: Completion message sent via DM.
 - **`createNoPhysicalFruitEmbed(language, client)`**: Message for orders in `bloxy-market` without physical fruits.
+- **`createTranscriptEmbed(ticket, client)`**: Message sent paired with the file attachment in the transcript channel after `/fulfill-order` or `/generate-transcript` is ran.
 
 * **Helper Functions:**
   - **`getFooter(client)`**: Creates a consistent footer for embeds.

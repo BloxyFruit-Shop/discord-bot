@@ -22,7 +22,8 @@ const {
   createAccountItemsEmbed,
   createTicketExistsEmbed,
   createCompletionMessageEmbed,
-  createNoPhysicalFruitEmbed
+  createNoPhysicalFruitEmbed,
+  createTranscriptEmbed
 } = require('./embeds');
 const {
   shopify,
@@ -31,6 +32,7 @@ const {
   fullFillmentOrder
 } = require('./shopify');
 const servers = require('./server-config.js');
+const { createTranscript } = require('discord-html-transcripts');
 
 require('dotenv').config();
 
@@ -190,6 +192,11 @@ client.once('ready', async () => {
     {
       name: 'cancel-order',
       description: 'Cancel an order'
+    },
+    {
+      name: 'generate-transcript',
+      description:
+        'Only use this in case of error with the automatic transcript.'
     }
   ];
 
@@ -828,6 +835,38 @@ async function handleSlashCommands(interaction, ticketStage) {
         content: 'Ticket marked as completed!',
         ephemeral: true
       });
+      try {
+        const attachment = await createTranscript(channel, {
+          returnBuffer: false,
+          filename: `transcript-${ticketStage.orderId}.html`,
+          poweredBy: false,
+          footerText: `Exported {number} message{s} | BloxyFruit Transcript System | ${new Date().toLocaleString(
+            'es-ES',
+            {
+              day: '2-digit',
+              month: '2-digit',
+              year: '2-digit'
+            }
+          )}`
+        });
+        const transcriptChannelId = serverConfig.transcript;
+        const transcriptChannel = await client.channels
+          .fetch(transcriptChannelId)
+          .catch(() => null);
+
+        const embed = createTranscriptEmbed(ticketStage, client);
+        await transcriptChannel.send({
+          embeds: [embed],
+          files: [attachment]
+        });
+      } catch (e) {
+        console.error('Error creating transcript:', e);
+        await channel.send({
+          content:
+            'Failed to create the transcript for this ticket. Try manually creating one.',
+          ephemeral: true
+        });
+      }
     } catch (error) {
       console.error('Error completing ticket:', error);
       await interaction.reply({
@@ -866,6 +905,47 @@ async function handleSlashCommands(interaction, ticketStage) {
       console.error('Error deleting completed tickets:', error);
       await interaction.reply({
         content: 'There was an error deleting completed tickets.',
+        ephemeral: true
+      });
+    }
+  }
+
+  if (interaction.commandName === 'generate-transcript') {
+    const channel = interaction.channel;
+    try {
+      const attachment = await createTranscript(channel, {
+        returnBuffer: false,
+        filename: `transcript-${ticketStage.orderId}.html`,
+        poweredBy: false,
+        footerText: `Exported {number} message{s} | BloxyFruit Transcript System | ${new Date().toLocaleString(
+          'es-ES',
+          {
+            day: '2-digit',
+            month: '2-digit',
+            year: '2-digit'
+          }
+        )}`
+      });
+      const transcriptChannelId = serverConfig.transcript;
+      const transcriptChannel = await client.channels
+        .fetch(transcriptChannelId)
+        .catch(() => null);
+
+      const embed = createTranscriptEmbed(ticketStage, client);
+      await transcriptChannel.send({
+        embeds: [embed],
+        files: [attachment]
+      });
+
+      await interaction.reply({
+        content: 'Succesfully created manual transcript.',
+        ephemeral: true
+      });
+    } catch (e) {
+      console.error('Error creating transcript:', e);
+      await interaction.reply({
+        content:
+          'Failed to create the transcript for this ticket. This may not be a ticket channel, or the ticket has already been removed from memory.',
         ephemeral: true
       });
     }
