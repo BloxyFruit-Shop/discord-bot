@@ -31,6 +31,7 @@ const {
   fullFillmentOrder
 } = require('./shopify');
 const servers = require('./server-config.js');
+const { createTranscript } = require('discord-html-transcripts');
 
 require('dotenv').config();
 
@@ -828,6 +829,37 @@ async function handleSlashCommands(interaction, ticketStage) {
         content: 'Ticket marked as completed!',
         ephemeral: true
       });
+      try {
+        const attachment = await createTranscript(channel, {
+          returnBuffer: false,
+          filename: `${ticketStage.orderId}.html`,
+          poweredBy: false,
+          footerText: `Exported {number} message{s} | BloxyFruit Transcript System | ${new Date().toLocaleString(
+            'es-ES',
+            {
+              day: '2-digit',
+              month: '2-digit',
+              year: '2-digit'
+            }
+          )}`
+        });
+        const transcriptChannelId = serverConfig.transcript;
+        const transcriptChannel = await client.channels
+          .fetch(transcriptChannelId)
+          .catch(() => null);
+
+        await transcriptChannel.send({
+          content: `### Transcript generated for fulfilled order N°${ticketStage.orderId}!.`,
+          files: [attachment]
+        });
+      } catch (e) {
+        console.error('Error creating transcript:', e);
+        await channel.send({
+          content:
+            'Failed to create the transcript for this ticket. Try manually creating one.',
+          ephemeral: true
+        });
+      }
     } catch (error) {
       console.error('Error completing ticket:', error);
       await interaction.reply({

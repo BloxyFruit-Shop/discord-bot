@@ -56,7 +56,8 @@ const devServers = {
     claim: '1350533485512753307',
     'admin-role': '1350533529028661371',
     'customer-role': '1350533583130988574',
-    'reviews-channel': '1350533807035514941'
+    'reviews-channel': '1350533807035514941',
+    transcript: '1350576550084349962'
   },
   'anime-vanguards': {
     name: 'anime-vanguards',
@@ -64,7 +65,8 @@ const devServers = {
     claim: '1350533485512753307',
     'admin-role': '1350533529028661371',
     'customer-role': '1350533583130988574',
-    'reviews-channel': '1350533807035514941'
+    'reviews-channel': '1350533807035514941',
+    transcript: '1350576550084349962'
   },
   'blox-fruits': {
     name: 'blox-fruits',
@@ -72,7 +74,8 @@ const devServers = {
     claim: '1350533485512753307',
     'admin-role': '1350533529028661371',
     'customer-role': '1350533583130988574',
-    'reviews-channel': '1350533807035514941'
+    'reviews-channel': '1350533807035514941',
+    transcript: '1350576550084349962'
   },
   'bloxy-market': {
     name: 'bloxy-market',
@@ -80,7 +83,8 @@ const devServers = {
     claim: '1350533485512753307',
     'admin-role': '1350533529028661371',
     'customer-role': '1350533583130988574',
-    'reviews-channel': '1350533807035514941'
+    'reviews-channel': '1350533807035514941',
+    transcript: '1350576550084349962'
   },
   'pets-go': {
     name: 'pets-go',
@@ -88,7 +92,8 @@ const devServers = {
     claim: '1350533485512753307',
     'admin-role': '1350533529028661371',
     'customer-role': '1350533583130988574',
-    'reviews-channel': '1350533807035514941'
+    'reviews-channel': '1350533807035514941',
+    transcript: '1350576550084349962'
   },
   'king-legacy': {
     name: 'king-legacy',
@@ -96,7 +101,8 @@ const devServers = {
     claim: '1350533485512753307',
     'admin-role': '1350533529028661371',
     'customer-role': '1350533583130988574',
-    'reviews-channel': '1350533807035514941'
+    'reviews-channel': '1350533807035514941',
+    transcript: '1350576550084349962'
   }
 };
 
