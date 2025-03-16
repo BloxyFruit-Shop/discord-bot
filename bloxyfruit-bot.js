@@ -22,7 +22,8 @@ const {
   createAccountItemsEmbed,
   createTicketExistsEmbed,
   createCompletionMessageEmbed,
-  createNoPhysicalFruitEmbed
+  createNoPhysicalFruitEmbed,
+  createTranscriptEmbed
 } = require('./embeds');
 const {
   shopify,
@@ -832,7 +833,7 @@ async function handleSlashCommands(interaction, ticketStage) {
       try {
         const attachment = await createTranscript(channel, {
           returnBuffer: false,
-          filename: `${ticketStage.orderId}.html`,
+          filename: `transcript-${ticketStage.orderId}.html`,
           poweredBy: false,
           footerText: `Exported {number} message{s} | BloxyFruit Transcript System | ${new Date().toLocaleString(
             'es-ES',
@@ -848,8 +849,9 @@ async function handleSlashCommands(interaction, ticketStage) {
           .fetch(transcriptChannelId)
           .catch(() => null);
 
+        const embed = createTranscriptEmbed(ticketStage, client);
         await transcriptChannel.send({
-          content: `### Transcript generated for fulfilled order N°${ticketStage.orderId}!.`,
+          embeds: [embed],
           files: [attachment]
         });
       } catch (e) {

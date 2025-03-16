@@ -587,5 +587,6 @@ module.exports = {
   createAccountItemsEmbed,
   createTicketExistsEmbed,
   createCompletionMessageEmbed,
-  createNoPhysicalFruitEmbed
-}
+  createNoPhysicalFruitEmbed,
+  createTranscriptEmbed
+};
