@@ -537,10 +537,10 @@ const createPhysicalFruitOnlyEmbed = (lang = 'en', client) => {
  * @see Used in `/fulfill-order` command handler
  */
 const createTranscriptEmbed = (ticket, client) => {
-  const {orderId} = ticket
+  const { orderId } = ticket;
   return new EmbedBuilder()
     .setColor('#45B7D1')
-    .setTitle(`Transcript generated for fulfilled order ${orderId}.`)
+    .setTitle(`Transcript generated for fulfilled order #${orderId}.`)
     .setDescription(
       `The order ${orderId} has been fulfilled. A transcript has been generated for your reference.`
     )
