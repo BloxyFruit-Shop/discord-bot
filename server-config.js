@@ -49,4 +49,62 @@ const servers = {
   }
 };
 
+// I used this with my own guild and roles for testing. If you're trying to debug or add new features, uncomment, update the fields, and change the module.exports
+// const devServers = {
+//   rivals: {
+//     name: 'rivals',
+//     guild: '1350533330327830588',
+//     claim: '1350533485512753307',
+//     'admin-role': '1350533529028661371',
+//     'customer-role': '1350533583130988574',
+//     'reviews-channel': '1350533807035514941',
+//     transcript: '1350576550084349962'
+//   },
+//   'anime-vanguards': {
+//     name: 'anime-vanguards',
+//     guild: '1350533330327830588',
+//     claim: '1350533485512753307',
+//     'admin-role': '1350533529028661371',
+//     'customer-role': '1350533583130988574',
+//     'reviews-channel': '1350533807035514941',
+//     transcript: '1350576550084349962'
+//   },
+//   'blox-fruits': {
+//     name: 'blox-fruits',
+//     guild: '1350533330327830588',
+//     claim: '1350533485512753307',
+//     'admin-role': '1350533529028661371',
+//     'customer-role': '1350533583130988574',
+//     'reviews-channel': '1350533807035514941',
+//     transcript: '1350576550084349962'
+//   },
+//   'bloxy-market': {
+//     name: 'bloxy-market',
+//     guild: '1350533330327830588',
+//     claim: '1350533485512753307',
+//     'admin-role': '1350533529028661371',
+//     'customer-role': '1350533583130988574',
+//     'reviews-channel': '1350533807035514941',
+//     transcript: '1350576550084349962'
+//   },
+//   'pets-go': {
+//     name: 'pets-go',
+//     guild: '1350533330327830588',
+//     claim: '1350533485512753307',
+//     'admin-role': '1350533529028661371',
+//     'customer-role': '1350533583130988574',
+//     'reviews-channel': '1350533807035514941',
+//     transcript: '1350576550084349962'
+//   },
+//   'king-legacy': {
+//     name: 'king-legacy',
+//     guild: '1350533330327830588',
+//     claim: '1350533485512753307',
+//     'admin-role': '1350533529028661371',
+//     'customer-role': '1350533583130988574',
+//     'reviews-channel': '1350533807035514941',
+//     transcript: '1350576550084349962'
+//   }
+// };
+
 module.exports = servers;

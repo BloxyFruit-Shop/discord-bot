@@ -787,6 +787,12 @@ async function handleSlashCommands(interaction, ticketStage) {
         return;
       }
 
+      // Discord requires a response within 3 seconds of the interaction. This answer gives us a bit of time to do all the async work before actually sending the response.
+      await interaction.reply({
+        content: 'Fulfilling order. Please wait, this may take a while.',
+        ephemeral: true
+      });
+
       const fulfillmentOrderId = await getFullfilmentOrderId(
         ticketStage.orderId
       );
@@ -831,10 +837,11 @@ async function handleSlashCommands(interaction, ticketStage) {
 
       await guildMember.roles.add(serverConfig['customer-role']);
 
-      await interaction.reply({
-        content: 'Ticket marked as completed!',
-        ephemeral: true
+      // Edit the initial reply to reflect that processing is complete
+      await interaction.editReply({
+        content: 'Order fulfilled! A transcript of the order is being created for archiving.'
       });
+
       try {
         const attachment = await createTranscript(channel, {
           returnBuffer: false,
