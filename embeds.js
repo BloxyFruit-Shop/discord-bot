@@ -154,66 +154,6 @@ const createOrderFoundEmbed = (orderId, lang = 'en', client) => {
 };
 
 /**
- * Creates the button for providing Roblox username.
- * Used in the username verification step.
- * @param {string} [lang='en'] - Language code for translations
- * @param {Client} client - The Discord client instance
- * @returns {ActionRowBuilder} The username button
- * @see Used in `handleOrderVerification` after order is found
- */
-const createProvideUsernameButton = (lang = 'en', client) => {
-  const t = translations[lang];
-  return new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId('provideRobloxUsername')
-      .setLabel(t.ROBLOX_USERNAME_PROMPT_TITLE)
-      .setStyle(ButtonStyle.Primary)
-  );
-};
-
-/**
- * Creates the embed prompting for Roblox username.
- * Asks users to provide their Roblox username.
- * @param {string} [lang='en'] - Language code for translations
- * @param {Client} client - The Discord client instance
- * @returns {EmbedBuilder} The username prompt embed
- * @see Used in `handleOrderVerification` after order is found
- */
-const createProvideRobloxUsernameEmbed = (lang = 'en', client) => {
-  const t = translations[lang];
-  return new EmbedBuilder()
-    .setColor('#4ECDC4')
-    .setTitle(t.ROBLOX_USERNAME_PROMPT_TITLE)
-    .setDescription(t.ROBLOX_USERNAME_PROMPT_CONTENT)
-    .setFooter(getFooter(client))
-    .setTimestamp();
-};
-
-/**
- * Creates the embed confirming username submission.
- * Shows the provided Roblox username.
- * @param {string} robloxUsername - The submitted username
- * @param {string} [lang='en'] - Language code for translations
- * @param {Client} client - The Discord client instance
- * @returns {EmbedBuilder} The username confirmation embed
- * @see Used in `handleUsernameSubmission`
- */
-const createProvidedUsernameEmbed = (robloxUsername, lang = 'en', client) => {
-  const t = translations[lang];
-  return new EmbedBuilder()
-    .setColor('#4ECDC4')
-    .setTitle(t.ROBLOX_USERNAME_RECORDED_TITLE)
-    .setDescription(
-      t.ROBLOX_USERNAME_RECORDED_CONTENT.replace(
-        '{robloxUsername}',
-        robloxUsername
-      )
-    )
-    .setFooter(getFooter(client))
-    .setTimestamp();
-};
-
-/**
  * Creates the button to initiate ticket creation.
  * Custom ID includes server name for tracking.
  * @param {string} serverName - Name of the server/game
@@ -593,11 +533,8 @@ module.exports = {
   createSummaryEmbed,
   createLanguageSelection,
   createOrderNotFoundEmbed,
-  createProvideUsernameButton,
-  createProvideRobloxUsernameEmbed,
   createOrderFoundEmbed,
   createTimezoneEmbed,
-  createProvidedUsernameEmbed,
   createDifferentGameEmbed,
   createOrderClaimedEmbed,
   createPhysicalFruitEmbed,
