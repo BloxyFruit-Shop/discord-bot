@@ -566,6 +566,24 @@ const createNoPhysicalFruitEmbed = (lang = 'en', client) => {
     .setTimestamp();
 };
 
+/**
+ * Creates the embed shown when a user attempts to create a ticket without setting a receiver account on the order.
+ * Notifies user that they need to set the Roblox account for the order on the website.
+ * @param {string} [lang='en'] - Language code for translations
+ * @param {Client} client - The Discord client instance
+ * @returns {EmbedBuilder} The missing receiver account embed
+ * @see Used when verifying if user has set a receiver account before ticket creation
+ */
+const createMissingReceiverAccountEmbed = (lang = 'en', client) => {
+  const t = translations[lang];
+  return new EmbedBuilder()
+    .setColor('#FF6B6B')
+    .setTitle(t.MISSING_ROBLOX_ACCOUNT_TITLE)
+    .setDescription(t.MISSING_ROBLOX_ACCOUNT_DESCRIPTION)
+    .setFooter(getFooter(client))
+    .setTimestamp();
+};
+
 module.exports = {
   createClaimEmbed,
   createWelcomeEmbed,
@@ -588,5 +606,6 @@ module.exports = {
   createTicketExistsEmbed,
   createCompletionMessageEmbed,
   createNoPhysicalFruitEmbed,
-  createTranscriptEmbed
+  createTranscriptEmbed,
+  createMissingReceiverAccountEmbed
 };

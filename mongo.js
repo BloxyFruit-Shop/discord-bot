@@ -32,13 +32,19 @@ const ordersSchema = new Schema({
   totalAmount: Number,
   status: {
     type: String,
-    enum: ['pending', 'processing','completed', 'cancelled'],
+    enum: ['pending', 'completed', 'cancelled'],
     default: 'pending'
-  },  
+  },
   game: String,
+  reciever: {
+    username: { type: String, default: '' },
+    displayName: { type: String, default: '' },
+    id: { type: String, default: '' },
+    thumbnail: { type: String, default: '' }
+  },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
-})
+});
 
 module.exports = {
   orders: db.model("orders", ordersSchema)

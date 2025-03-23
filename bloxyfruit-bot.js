@@ -23,7 +23,8 @@ const {
   createTicketExistsEmbed,
   createCompletionMessageEmbed,
   createNoPhysicalFruitEmbed,
-  createTranscriptEmbed
+  createTranscriptEmbed,
+  createMissingReceiverAccountEmbed
 } = require('./embeds');
 const {
   shopify,
@@ -445,6 +446,26 @@ async function handleOrderVerification(serverName, message, ticketStage) {
       return;
     }
 
+    if (!order?.reciever?.username) {
+      const embed = createMissingReceiverAccountEmbed(
+        ticketStage.language,
+        client
+      );
+      await message.channel.send({ embeds: [embed] });
+
+      delete ticketStages[message.channel.id];
+      saveTicketStages();
+
+      setTimeout(async () => {
+        try {
+          await message.channel.delete();
+        } catch (error) {
+          console.error('Error deleting duplicate ticket:', error);
+        }
+      }, 30000);
+      return;
+    }
+
     if (
       order.game &&
       order.game !== serverName &&
@@ -839,7 +860,8 @@ async function handleSlashCommands(interaction, ticketStage) {
 
       // Edit the initial reply to reflect that processing is complete
       await interaction.editReply({
-        content: 'Order fulfilled! A transcript of the order is being created for archiving.'
+        content:
+          'Order fulfilled! A transcript of the order is being created for archiving.'
       });
 
       try {

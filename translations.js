@@ -23,7 +23,7 @@ const translations = {
     ORDER_NOT_FOUND_TITLE: '❌ Order Not Found',
     ORDER_NOT_FOUND_DESCRIPTION: 'We couldn\'t find an order with ID: **{orderId}**\n\nPlease check your order ID and try again. If you still need help, please create a ticket: https://discord.gg/kAyKCggsKB',
     ORDER_FOUND_TITLE: '✅ Order Found',
-    ORDER_FOUND_DESCRIPTION: 'Great! We\'ve found your order **#{orderId}**\nNow, please provide your Roblox username.',
+    ORDER_FOUND_DESCRIPTION: 'Great! We\'ve found your order **#{orderId}**.',
     TIMEZONE_TITLE: '🌍 Select Your Region',
     TIMEZONE_DESCRIPTION: 'To provide you with the best support, please select your region:',
     SUMMARY_TITLE: '📋 Ticket Summary',
@@ -62,14 +62,16 @@ const translations = {
     TRUSTPILOT: '🌟 Trustpilot',
     TRUSTPILOT_LINK: 'You can also review us on Trustpilot: [Trustpilot Review](https://www.trustpilot.com/review/bloxyfruit.com)',
     NO_PHYSICAL_FRUIT_TITLE: '🚫 No Physical Fruit',
-    NO_PHYSICAL_FRUIT_DESCRIPTION: 'Your order does not contain any physical fruits. Please join the main server to claim your order: https://discord.gg/bloxyfruit'
+    NO_PHYSICAL_FRUIT_DESCRIPTION: 'Your order does not contain any physical fruits. Please join the main server to claim your order: https://discord.gg/bloxyfruit',
+    MISSING_ROBLOX_ACCOUNT_TITLE: '❌ Missing Receiver Account',
+    MISSING_ROBLOX_ACCOUNT_DESCRIPTION: 'Your order doesn\'t have a reciever roblox account linked.\n\nPlease go to our [dashboard](https://bloxyfruit.com/account) and update your order details before trying again.'
   },
   es: {
     ORDER_VERIFICATION_CONTENT: '¡Hola! Si realizaste un pedido en nuestro sitio web y pagaste, por favor ingresa tu **ID de Pedido** a continuación. Solo envía el ID del pedido, nada más.',
     ORDER_NOT_FOUND_TITLE: 'Pedido No Encontrado',
     ORDER_NOT_FOUND_CONTENT: "Lo siento, no pudimos encontrar un pedido con el ID **{orderId}**. Por favor, verifica el ID e intenta nuevamente.",
     ORDER_FOUND_TITLE: 'Pedido Encontrado',
-    ORDER_FOUND_CONTENT: '¡Tu ID de pedido **{orderId}** ha sido encontrado exitosamente! Por favor, proporciona tu nombre de usuario de Roblox.',
+    ORDER_FOUND_CONTENT: '¡Tu ID de pedido **{orderId}** ha sido encontrado exitosamente!',
     ROBLOX_USERNAME_PROMPT_TITLE: 'Proporcionar Nombre de Usuario de Roblox',
     ROBLOX_USERNAME_PROMPT_CONTENT: 'Por favor, proporciona tu nombre de usuario de Roblox:',
     ROBLOX_USERNAME_RECORDED_TITLE: 'Nombre de Usuario de Roblox Registrado',
@@ -129,7 +131,9 @@ const translations = {
     TRUSTPILOT: '🌟 Trustpilot',
     TRUSTPILOT_LINK: 'También puedes reseñarnos en Trustpilot: [Reseña en Trustpilot](https://www.trustpilot.com/review/bloxyfruit.com)',
     NO_PHYSICAL_FRUIT_TITLE: '🚫 No Fruta Física',
-    NO_PHYSICAL_FRUIT_DESCRIPTION: 'Tu pedido no contiene ninguna fruta física. Por favor, únete al servidor principal para reclamar tu pedido: https://discord.gg/bloxyfruit'
+    NO_PHYSICAL_FRUIT_DESCRIPTION: 'Tu pedido no contiene ninguna fruta física. Por favor, únete al servidor principal para reclamar tu pedido: https://discord.gg/bloxyfruit',
+    MISSING_ROBLOX_ACCOUNT_TITLE: '❌ Cuenta de Roblox No Configurada',
+    MISSING_ROBLOX_ACCOUNT_DESCRIPTION: 'Tu pedido no tiene una cuenta de Roblox receptora vinculada.\n\nVe a nuestro [panel de control](https://bloxyfruit.com/account) y actualiza los detalles de tu pedido antes de volver a crear otro ticket.'
   }
 }
 
