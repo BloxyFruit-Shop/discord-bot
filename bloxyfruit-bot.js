@@ -466,12 +466,15 @@ async function handleOrderVerification(serverName, message, ticketStage) {
         client
       );
       setTimeout(() => {
-        if (ticketStages[message.channel.id].orderId == null) {
+        if (
+          message?.channel?.id &&
+          ticketStages[message.channel.id].orderId == null
+        ) {
           delete ticketStages[message.channel.id];
           saveTicketStages();
         }
         try {
-          message.channel.delete();
+          if (message?.channel) message.channel.delete();
         } catch (error) {
           console.error('Error deleting different game ticket:', error);
         }
@@ -577,13 +580,13 @@ async function handleOrderVerification(serverName, message, ticketStage) {
     await message.channel.send({
       embeds: [orderFoundEmbed]
     });
-    
+
     ticketStages[message.channel.id].stage = 'timezone';
     saveTicketStages();
-    
+
     const timezoneEmbed = createTimezoneEmbed(ticketStage.language, client);
     const row = createTimezoneButtons();
-    
+
     await message.channel.send({ embeds: [timezoneEmbed], components: [row] });
   } catch (error) {
     console.error('Error fetching order:', error);
