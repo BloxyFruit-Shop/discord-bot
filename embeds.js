@@ -6,23 +6,7 @@ const {
 } = require('discord.js');
 const { translations } = require('./translations');
 
-const discordServerInvites = {
-  rivals: 'https://discord.gg/bloxyrivals',
-  'blox-fruits': 'https://discord.gg/bloxyfruit',
-  'bloxy-market': 'https://discord.gg/fyTQNnbW7B',
-  'pets-go': 'https://discord.gg/bloxypets',
-  'anime-vanguards': 'https://discord.gg/5gwAZZpXSw',
-  'king-legacy': 'https://discord.gg/8sjBPzzxwA'
-};
-
-const gameNames = {
-  rivals: 'Rivals',
-  'blox-fruits': 'Blox Fruits',
-  'bloxy-market': 'Blox Fruits Physicals',
-  'pets-go': 'Pets Go',
-  'anime-vanguards': 'Anime Vanguards',
-  'king-legacy': 'King Legacy'
-};
+const { discordServerInvites, gameNames } = require('./server-config.js');
 
 /**
  * Creates a consistent footer for all embeds.

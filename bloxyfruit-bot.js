@@ -29,7 +29,7 @@ const {
   getFullfilmentOrderId,
   fullFillmentOrder
 } = require('./shopify');
-const servers = require('./server-config.js');
+const { servers } = require('./server-config.js');
 const { createTranscript } = require('discord-html-transcripts');
 
 require('dotenv').config();
