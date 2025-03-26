@@ -11,10 +11,7 @@ const {
   createLanguageSelection,
   createOrderNotFoundEmbed,
   createOrderFoundEmbed,
-  createProvideUsernameButton,
-  createProvideRobloxUsernameEmbed,
   createTimezoneEmbed,
-  createProvidedUsernameEmbed,
   createDifferentGameEmbed,
   createOrderClaimedEmbed,
   createPhysicalFruitEmbed,
@@ -23,7 +20,8 @@ const {
   createTicketExistsEmbed,
   createCompletionMessageEmbed,
   createNoPhysicalFruitEmbed,
-  createTranscriptEmbed
+  createTranscriptEmbed,
+  createMissingReceiverAccountEmbed
 } = require('./embeds');
 const {
   shopify,
@@ -31,7 +29,7 @@ const {
   getFullfilmentOrderId,
   fullFillmentOrder
 } = require('./shopify');
-const servers = require('./server-config.js');
+const { servers } = require('./server-config.js');
 const { createTranscript } = require('discord-html-transcripts');
 
 require('dotenv').config();
@@ -235,13 +233,6 @@ client.on('interactionCreate', async (interaction) => {
 
       if (
         interaction.isButton() &&
-        interaction.customId === 'provideRobloxUsername'
-      ) {
-        await handleUsernameButton(interaction, ticketStage);
-      }
-
-      if (
-        interaction.isButton() &&
         interaction.customId.startsWith('timezone_')
       ) {
         await handleTimezoneSelection(interaction, ticketStage);
@@ -273,8 +264,6 @@ client.on('messageCreate', async (message) => {
 
   if (ticketStage.stage === 'orderVerification') {
     await handleOrderVerification(serverName, message, ticketStage);
-  } else if (ticketStage.stage === 'robloxUsername') {
-    await handleUsernameSubmission(message, ticketStage);
   }
 });
 
@@ -445,6 +434,26 @@ async function handleOrderVerification(serverName, message, ticketStage) {
       return;
     }
 
+    if (!order?.reciever?.username) {
+      const embed = createMissingReceiverAccountEmbed(
+        ticketStage.language,
+        client
+      );
+      await message.channel.send({ embeds: [embed] });
+
+      delete ticketStages[message.channel.id];
+      saveTicketStages();
+
+      setTimeout(async () => {
+        try {
+          await message.channel.delete();
+        } catch (error) {
+          console.error('Error deleting duplicate ticket:', error);
+        }
+      }, 30000);
+      return;
+    }
+
     if (
       order.game &&
       order.game !== serverName &&
@@ -457,12 +466,15 @@ async function handleOrderVerification(serverName, message, ticketStage) {
         client
       );
       setTimeout(() => {
-        if (ticketStages[message.channel.id].orderId == null) {
+        if (
+          message?.channel?.id &&
+          ticketStages[message.channel.id].orderId == null
+        ) {
           delete ticketStages[message.channel.id];
           saveTicketStages();
         }
         try {
-          message.channel.delete();
+          if (message?.channel) message.channel.delete();
         } catch (error) {
           console.error('Error deleting different game ticket:', error);
         }
@@ -558,78 +570,30 @@ async function handleOrderVerification(serverName, message, ticketStage) {
 
     ticketStages[message.channel.id].orderId = orderId;
     ticketStages[message.channel.id].orderDetails = order;
+    ticketStages[message.channel.id].robloxUsername = order.reciever.username;
 
     const orderFoundEmbed = createOrderFoundEmbed(
       orderId,
       ticketStage.language,
       client
     );
-    const usernameButton = createProvideUsernameButton(
-      ticketStage.language,
-      client
-    );
     await message.channel.send({
-      embeds: [orderFoundEmbed],
-      components: [usernameButton]
+      embeds: [orderFoundEmbed]
     });
 
-    ticketStages[message.channel.id].stage = 'robloxUsername';
+    ticketStages[message.channel.id].stage = 'timezone';
     saveTicketStages();
+
+    const timezoneEmbed = createTimezoneEmbed(ticketStage.language, client);
+    const row = createTimezoneButtons();
+
+    await message.channel.send({ embeds: [timezoneEmbed], components: [row] });
   } catch (error) {
     console.error('Error fetching order:', error);
     message.channel.send(
       'There was an error processing your order. Please try again.'
     );
   }
-}
-
-/**
- * Handles the username button interaction, prompting the user for their Roblox username.
- *
- * @param interaction The interaction object.
- * @param ticketStage The current ticket stage.
- */
-async function handleUsernameButton(interaction, ticketStage) {
-  try {
-    if (ticketStage.stage !== 'robloxUsername') return;
-    if (interaction.user.id !== ticketStage.userId) return;
-
-    const embed = createProvideRobloxUsernameEmbed(
-      ticketStage.language,
-      client
-    );
-    await interaction.reply({ embeds: [embed], ephemeral: true });
-  } catch (error) {
-    console.error('Username button error:', error);
-  }
-}
-
-/**
- * Handles the submission of a Roblox username, updates the ticket stage, and sends timezone selection options.
- *
- * @param message - The message containing the submitted username.
- * @param ticketStage - The current stage of the ticket.
- */
-async function handleUsernameSubmission(message, ticketStage) {
-  clearDeletionTimeout(message.channel.id);
-
-  const robloxUsername = message.content.trim();
-  ticketStages[message.channel.id].robloxUsername = robloxUsername;
-
-  ticketStages[message.channel.id].stage = 'timezone';
-  saveTicketStages();
-
-  const usernameEmbed = createProvidedUsernameEmbed(
-    robloxUsername,
-    ticketStage.language,
-    client
-  );
-  const timezoneEmbed = createTimezoneEmbed(ticketStage.language, client);
-
-  const row = createTimezoneButtons();
-
-  await message.channel.send({ embeds: [usernameEmbed] });
-  await message.channel.send({ embeds: [timezoneEmbed], components: [row] });
 }
 
 /**
@@ -839,7 +803,8 @@ async function handleSlashCommands(interaction, ticketStage) {
 
       // Edit the initial reply to reflect that processing is complete
       await interaction.editReply({
-        content: 'Order fulfilled! A transcript of the order is being created for archiving.'
+        content:
+          'Order fulfilled! A transcript of the order is being created for archiving.'
       });
 
       try {

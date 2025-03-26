@@ -6,23 +6,7 @@ const {
 } = require('discord.js');
 const { translations } = require('./translations');
 
-const discordServerInvites = {
-  rivals: 'https://discord.gg/bloxyrivals',
-  'blox-fruits': 'https://discord.gg/bloxyfruit',
-  'bloxy-market': 'https://discord.gg/fyTQNnbW7B',
-  'pets-go': 'https://discord.gg/bloxypets',
-  'anime-vanguards': 'https://discord.gg/5gwAZZpXSw',
-  'king-legacy': 'https://discord.gg/8sjBPzzxwA'
-};
-
-const gameNames = {
-  rivals: 'Rivals',
-  'blox-fruits': 'Blox Fruits',
-  'bloxy-market': 'Blox Fruits Physicals',
-  'pets-go': 'Pets Go',
-  'anime-vanguards': 'Anime Vanguards',
-  'king-legacy': 'King Legacy'
-};
+const { discordServerInvites, gameNames } = require('./server-config.js');
 
 /**
  * Creates a consistent footer for all embeds.
@@ -149,66 +133,6 @@ const createOrderFoundEmbed = (orderId, lang = 'en', client) => {
     .setColor('#4ECDC4')
     .setTitle(t.ORDER_FOUND_TITLE)
     .setDescription(t.ORDER_FOUND_CONTENT.replace('{orderId}', orderId))
-    .setFooter(getFooter(client))
-    .setTimestamp();
-};
-
-/**
- * Creates the button for providing Roblox username.
- * Used in the username verification step.
- * @param {string} [lang='en'] - Language code for translations
- * @param {Client} client - The Discord client instance
- * @returns {ActionRowBuilder} The username button
- * @see Used in `handleOrderVerification` after order is found
- */
-const createProvideUsernameButton = (lang = 'en', client) => {
-  const t = translations[lang];
-  return new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId('provideRobloxUsername')
-      .setLabel(t.ROBLOX_USERNAME_PROMPT_TITLE)
-      .setStyle(ButtonStyle.Primary)
-  );
-};
-
-/**
- * Creates the embed prompting for Roblox username.
- * Asks users to provide their Roblox username.
- * @param {string} [lang='en'] - Language code for translations
- * @param {Client} client - The Discord client instance
- * @returns {EmbedBuilder} The username prompt embed
- * @see Used in `handleOrderVerification` after order is found
- */
-const createProvideRobloxUsernameEmbed = (lang = 'en', client) => {
-  const t = translations[lang];
-  return new EmbedBuilder()
-    .setColor('#4ECDC4')
-    .setTitle(t.ROBLOX_USERNAME_PROMPT_TITLE)
-    .setDescription(t.ROBLOX_USERNAME_PROMPT_CONTENT)
-    .setFooter(getFooter(client))
-    .setTimestamp();
-};
-
-/**
- * Creates the embed confirming username submission.
- * Shows the provided Roblox username.
- * @param {string} robloxUsername - The submitted username
- * @param {string} [lang='en'] - Language code for translations
- * @param {Client} client - The Discord client instance
- * @returns {EmbedBuilder} The username confirmation embed
- * @see Used in `handleUsernameSubmission`
- */
-const createProvidedUsernameEmbed = (robloxUsername, lang = 'en', client) => {
-  const t = translations[lang];
-  return new EmbedBuilder()
-    .setColor('#4ECDC4')
-    .setTitle(t.ROBLOX_USERNAME_RECORDED_TITLE)
-    .setDescription(
-      t.ROBLOX_USERNAME_RECORDED_CONTENT.replace(
-        '{robloxUsername}',
-        robloxUsername
-      )
-    )
     .setFooter(getFooter(client))
     .setTimestamp();
 };
@@ -566,6 +490,24 @@ const createNoPhysicalFruitEmbed = (lang = 'en', client) => {
     .setTimestamp();
 };
 
+/**
+ * Creates the embed shown when a user attempts to create a ticket without setting a receiver account on the order.
+ * Notifies user that they need to set the Roblox account for the order on the website.
+ * @param {string} [lang='en'] - Language code for translations
+ * @param {Client} client - The Discord client instance
+ * @returns {EmbedBuilder} The missing receiver account embed
+ * @see Used when verifying if user has set a receiver account before ticket creation
+ */
+const createMissingReceiverAccountEmbed = (lang = 'en', client) => {
+  const t = translations[lang];
+  return new EmbedBuilder()
+    .setColor('#FF6B6B')
+    .setTitle(t.MISSING_ROBLOX_ACCOUNT_TITLE)
+    .setDescription(t.MISSING_ROBLOX_ACCOUNT_DESCRIPTION)
+    .setFooter(getFooter(client))
+    .setTimestamp();
+};
+
 module.exports = {
   createClaimEmbed,
   createWelcomeEmbed,
@@ -575,11 +517,8 @@ module.exports = {
   createSummaryEmbed,
   createLanguageSelection,
   createOrderNotFoundEmbed,
-  createProvideUsernameButton,
-  createProvideRobloxUsernameEmbed,
   createOrderFoundEmbed,
   createTimezoneEmbed,
-  createProvidedUsernameEmbed,
   createDifferentGameEmbed,
   createOrderClaimedEmbed,
   createPhysicalFruitEmbed,
@@ -588,5 +527,6 @@ module.exports = {
   createTicketExistsEmbed,
   createCompletionMessageEmbed,
   createNoPhysicalFruitEmbed,
-  createTranscriptEmbed
+  createTranscriptEmbed,
+  createMissingReceiverAccountEmbed
 };

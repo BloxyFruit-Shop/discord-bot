@@ -61,16 +61,20 @@ The bot is designed to manage a ticketing system for order fulfillment across mu
 
 ## 1. Introduction <a name="introduction"></a>
 
-The Discord bot acts as a bridge between customers placing orders through our online shop, and the staff fulfilling those orders. It creates a dedicated ticket channel for each order, guiding the customer through a series of steps:
+The Discord bot bridges customers placing orders through the online shop and the staff fulfilling those orders. It creates a dedicated ticket channel for each order and guides the customer through the following steps:
 
-1. Language selection
-2. Order ID verification
-3. Roblox username submission
-4. Timezone selection
+1. **Language Selection:**  
+   The user selects their preferred language (English or Spanish).
 
-Staff members can then use slash commands to manage the tickets, marking them as complete, canceling orders, or deleting tickets.
+2. **Order ID Verification:**  
+   The user provides their order ID which the bot validates by querying the database.
 
-The bot also handles automated cleanup of inactive or completed tickets.
+3. **Timezone Selection:**  
+   After order verification, the user chooses a timezone for scheduling purposes.
+
+> **Note:** The previous step for submitting a Roblox username has been removed. The website now handles the collection of the Roblox account information, and the bot automatically sets the username from the order data.
+
+Staff members can manage tickets with slash commands, such as marking orders as fulfilled, canceling orders, or deleting tickets. The bot also handles cleanup of inactive or completed tickets.
 
 ## 2. Dependencies <a name="dependencies"></a>
 
@@ -160,7 +164,6 @@ The `stage` property determines the current step in the ticket workflow. Possibl
 
 - **`languagePreference`**: Waiting for the user to select a language (English or Spanish).
 - **`orderVerification`**: Waiting for the user to provide their order ID.
-- **`robloxUsername`**: Waiting for the user to provide their Roblox username.
 - **`timezone`**: Waiting for the user to select their timezone.
 - **`finished`**: The ticket has been completed (all information collected).
 
@@ -187,8 +190,6 @@ The `stage` property determines the current step in the ticket workflow. Possibl
 
 ## 5. Event Handlers <a name="event-handlers"></a>
 
-The bot uses event handlers to respond to various events from the Discord API.
-
 ### `ready` Event <a name="ready-event"></a>
 
 - Triggered when the bot successfully connects to Discord.
@@ -213,7 +214,6 @@ The bot uses event handlers to respond to various events from the Discord API.
 - **Ticket Stage Handling:**
   - Gets `ticketStage` from `ticketStages` using the channel ID.
   - **Language Selection:** If the interaction is a button press and the custom ID is `english` or `spanish`, it calls `handleLanguageSelection(interaction, ticketStage)`.
-  - **Username Button:** If the interaction is a button press and the custom ID is `provideRobloxUsername`, it calls `handleUsernameButton(interaction, ticketStage)`.
   - **Timezone Selection:** If the interaction is a button press and the custom ID starts with `timezone_`, it calls `handleTimezoneSelection(interaction, ticketStage)`.
 - **Slash Command Handling:**
   - If the interaction is a command, it calls `handleSlashCommands(interaction, ticketStage)`.
@@ -224,7 +224,6 @@ The bot uses event handlers to respond to various events from the Discord API.
 - Checks if the message is from a bot or if there's no associated ticket in `ticketStages`. If either is true, it returns early.
 - Retrieves the `ticketStage` and server configuration.
 - **Order Verification:** If the `ticketStage.stage` is `orderVerification`, it calls `handleOrderVerification(serverName, message, ticketStage)`.
-- **Roblox Username Submission:** If the `ticketStage.stage` is `robloxUsername`, it calls `handleUsernameSubmission(message, ticketStage)`.
 - It ensures that it's only processing message of the users of the tickets.
 
 ### `rateLimited` Event <a name="ratelimited-event"></a>
@@ -233,6 +232,8 @@ The bot uses event handlers to respond to various events from the Discord API.
 - Logs information about the rate limit. Stuff like the timeout, limit, method, path, route, and whether it's a global rate limit for future debugging.
 
 ## 6. Functions <a name="functions"></a>
+
+The following functions have been updated to reflect the new ticket flow. References to the former Roblox username submission (e.g., `handleUsernameButton` and `handleUsernameSubmission`) have been removed.
 
 ### `handleTicketCreation(interaction)` <a name="handleticketcreationinteraction"></a>
 
@@ -269,6 +270,7 @@ The bot uses event handlers to respond to various events from the Discord API.
 - **Game Mismatch:** Verifies the order's game (if present) against `serverName`.
   - If there is a game and the server is different (except the Blox Fruits/Bloxy Market combination) it will create and send the `createDifferentGameEmbed`, and it will schedule a deletion after 60 seconds if the orderId is still `null`.
 - **Order Already Claimed:** If the order status is `completed`, deletes the channel and returns.
+- **Missing Reciever Account:** If the order doesn't have a reciever username set on it's properties, it sends an embed (using `createMissingRecieverAccountEmbed`), schedules a deletion after 60 seconds and returns.
 - **Item Category Handling:** Handles edge cases:
   - `onlyAccountItems`: All items have `deliveryType: 'account'`. Sends `createAccountItemsEmbed`, schedules deletion (60 seconds), and returns.
   - `onlyPhysicalFruit`: All items have `category: 'Physical Fruit'` and the server _isn't_ `bloxy-market`. Sends `createPhysicalFruitOnlyEmbed`, deletes the ticket, schedules deletion (60 seconds), and returns.
@@ -276,24 +278,9 @@ The bot uses event handlers to respond to various events from the Discord API.
 - **Deletion Timeout**: clears the timeout using `clearDeletionTimeout()`.
 - **Order Found:** If the order is found and valid:
   - Updates `ticketStages` with `orderId` and the retrieved `orderDetails`.
-  - Sends an embed (using `createOrderFoundEmbed`) confirming the order and a button (using `createProvideUsernameButton`) prompting for the Roblox username.
-  - Updates the `stage` to `robloxUsername`.
-
-### `handleUsernameButton(interaction, ticketStage)` <a name="handleusernamebuttoninteraction-ticketstage"></a>
-
-- Handles the button press that prompts the user for their Roblox username.
-- **Stage Check:** Ensures the ticket is in the `robloxUsername` stage.
-- **User Check**: Ensures that the user who pressed the button created the ticket.
-- **Username Prompt:** Sends an embed (using `createProvideRobloxUsernameEmbed`) prompting the user to enter their Roblox username.
-
-### `handleUsernameSubmission(message, ticketStage)` <a name="handleusernamesubmissionmessage-ticketstage"></a>
-
-- Handles the submission of the user's Roblox username.
-- **Deletion Timeout**: clears the timeout using `clearDeletionTimeout()`.
-- **Username Extraction:** Extracts the Roblox username from the message content.
-- **Username Update:** Updates the `robloxUsername` property in `ticketStages`.
-- **Stage Transition:** Updates the `stage` to `timezone`.
-- **Timezone Selection:** Sends embeds for the provided username (`createProvidedUsernameEmbed`) and timezone selection (`createTimezoneEmbed`), along with timezone buttons (`createTimezoneButtons`).
+  - Sends an embed (using `createOrderFoundEmbed`) confirming the order.
+  - Updates the `stage` to `timezone`.
+  - Sends an embed (using `createTimezoneEmbed`) with it's corresponding buttons.
 
 ### `handleTimezoneSelection(interaction, ticketStage)` <a name="handletimezoneselectioninteraction-ticketstage"></a>
 
@@ -378,20 +365,25 @@ The bot provides the following slash commands for staff members:
 
 ### `servers` <a name="servers"></a>
 
-(Described in [Configuration](#configuration))
+Configurations for each supported server, including channel IDs and role IDs.
+(More information on [Configuration](#configuration))
 
 ### `ticketStages` <a name="ticketstages"></a>
 
-(Described in [Ticket Stages](#ticket-stages))
+A dictionary maintaining the state of each ticket. With the updated flow, valid `stage` values are:
+- `languagePreference`
+- `orderVerification`
+- `timezone`
+- `finished`
+
+The former `robloxUsername` stage is no longer used.
 
 ## 9. External Modules <a name="external-modules"></a>
 
 ### `./mongo` <a name="mongo"></a>
 
-- **`Schema`**: Defines the structure of MongoDB documents.
-
-  - `orderItemSchema`: Defines the schema for items within an order.
-  - `ordersSchema`: Defines the schema for the entire order.
+- `orderItemSchema`: Defines the schema for items within an order.
+- `ordersSchema`: Defines the schema for the entire order.
 
 - **`orders`**: A Mongoose model for the "orders" collection.
 
@@ -408,10 +400,7 @@ This module exports functions that return pre-configured `EmbedBuilder` instance
 - **`createLanguageSelection()`**: Buttons for language selection.
 - **`createOrderNotFoundEmbed(orderId, language, client)`**: Order not found message.
 - **`createOrderFoundEmbed(orderId, language, client)`**: Order found confirmation.
-- **`createProvideUsernameButton(language, client)`**: Button to prompt for username.
-- **`createProvideRobloxUsernameEmbed(language, client)`**: Embed prompting for username.
 - **`createTimezoneEmbed(language, client)`**: Embed prompting for timezone.
-- **`createProvidedUsernameEmbed(robloxUsername, language, client)`**: Confirms username.
 - **`createDifferentGameEmbed(orderId, order.game, language, client)`**: Wrong game message.
 - **`createOrderClaimedEmbed(orderId, language, client)`**: Order already claimed message.
 - **`createPhysicalFruitEmbed(language, client)`**: Notification about physical fruits.
@@ -438,4 +427,4 @@ This module exports functions that return pre-configured `EmbedBuilder` instance
 
 ### `./translations` <a name="translations"></a>
 
-- **`translations`**: Contains the translations for both `en` and `es`.
+Contains translation strings used for multi-language support in embeds.
