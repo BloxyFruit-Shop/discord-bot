@@ -841,7 +841,7 @@ async function handleSlashCommands(interaction, ticketStage) {
       }
     } catch (error) {
       console.error('Error completing ticket:', error);
-      await interaction.reply({
+      await interaction.editReply({
         content: 'There was an error completing the ticket.',
         ephemeral: true
       });
