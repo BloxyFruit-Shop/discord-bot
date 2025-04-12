@@ -1,9 +1,11 @@
 {
   "name": "bloxyfruit-bot",
   "version": "1.0.0",
-  "main": "bloxyfruit-bot.js",
+  "main": "index.js",
+  "type": "module",
   "scripts": {
-    "start": "node --env-file=.env bloxyfruit-bot.js"
+    "start": "cls && node build/index.js",
+    "build": "cls && node build.js"
   },
   "author": "",
   "license": "ISC",
@@ -11,8 +13,18 @@
   "dependencies": {
     "@shopify/shopify-api": "^11.6.0",
     "discord-html-transcripts": "^3.2.0",
-    "discord.js": "^14.16.3",
+    "discord.js": "^14.18.0",
     "dotenv": "^16.4.5",
-    "mongoose": "^8.8.1"
+    "mongoose": "^8.8.1",
+    "@discordjs/rest": "^1.1.0",
+    "chalk": "^4.1.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.1",
+    "eslint": "^9.24.0",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-unicorn": "^58.0.0",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.3"
   }
 }
