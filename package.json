@@ -4,20 +4,22 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "start": "cls && node build/index.js",
-    "build": "cls && node build.js"
+    "build": "tsc && tsc-alias",
+    "start": "node --import tsconfig-paths/register.js dist/index.js"
   },
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@discordjs/rest": "^1.1.0",
     "@shopify/shopify-api": "^11.6.0",
+    "chalk": "^4.1.2",
     "discord-html-transcripts": "^3.2.0",
     "discord.js": "^14.18.0",
     "dotenv": "^16.4.5",
     "mongoose": "^8.8.1",
-    "@discordjs/rest": "^1.1.0",
-    "chalk": "^4.1.2"
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.1",
@@ -25,6 +27,7 @@
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-unicorn": "^58.0.0",
     "prettier": "^3.5.3",
+    "tsc-alias": "^1.8.15",
     "typescript": "^5.8.3"
   }
 }

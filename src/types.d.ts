@@ -1,5 +1,11 @@
-import { SlashCommandBuilder, CommandInteraction, Collection, PermissionResolvable, Message, AutocompleteInteraction, ChatInputCommandInteraction } from "discord.js"
-import mongoose from "mongoose"
+import { SlashCommandBuilder, ModalSubmitInteraction, CacheType, Collection, PermissionResolvable, Message, AutocompleteInteraction, ChatInputCommandInteraction, ButtonInteraction } from "discord.js"
+
+export interface ButtonHandler {
+    customId?: string; // For matching an exact custom ID
+    customIdPrefix?: string; // For matching IDs that start with this prefix
+    // You could add other matchers later, like a regex: customIdRegex?: RegExp;
+    execute: (interaction: ButtonInteraction<CacheType>, client : Client<true>) => Promise<void>;
+}
 
 export interface SlashCommand {
     command: SlashCommandBuilder,
@@ -17,21 +23,10 @@ export interface Command {
     cooldown?: number,
 }
 
-interface GuildOptions {
-    prefix: string,
-}
-
-export interface IGuild extends mongoose.Document {
-    guildID: string,
-    options: GuildOptions
-    joinedAt: Date
-}
-
-export type GuildOption = keyof GuildOptions
 export interface BotEvent {
     name: string,
     once?: boolean | false,
-    execute: (...args?) => void
+    execute: (...args: any[]) => void
 }
 
 declare global {
@@ -50,6 +45,8 @@ declare module "discord.js" {
     export interface Client {
         slashCommands: Collection<string, SlashCommand>
         commands: Collection<string, Command>,
-        cooldowns: Collection<string, number>
+        cooldowns: Collection<string, number>,
+        buttonHandlersExact: Collection<string, ButtonHandler>;
+        buttonHandlersPrefix: Collection<string, ButtonHandler>;
     }
 }

@@ -1,19 +1,41 @@
 import { Client } from "discord.js";
-import { readdirSync } from "fs";
-import { join } from "path";
-import { color } from "../functions";
-import { BotEvent } from "../types";
+import { readdir } from "fs/promises";
+import { join, dirname } from "path";
+import { fileURLToPath, pathToFileURL } from "url";
+import { color } from "~/functions.js";
+import { BotEvent } from "~/types.js";
 
-module.exports = (client: Client) => {
-    let eventsDir = join(__dirname, "../events")
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-    readdirSync(eventsDir).forEach(file => {
-        if (!file.endsWith(".js")) return;
-        let event: BotEvent = require(`${eventsDir}/${file}`).default
-        event.once ?
-            client.once(event.name, (...args) => event.execute(...args))
-            :
-            client.on(event.name, (...args) => event.execute(...args))
-        console.log(color("text", `🌠 Successfully loaded event ${color("variable", event.name)}`))
-    })
-}
+export default async (client: Client) => {
+    const eventsDir = join(__dirname, "../events");
+
+    try {
+        const files = await readdir(eventsDir);
+        for (const file of files) {
+            // Filter for .ts files (or .js if running the compiled version)
+            if (!file.endsWith(".js")) continue;
+
+            const filePath = join(eventsDir, file);
+            // Convert file path to file URL for dynamic import
+            const fileUrl = pathToFileURL(filePath).href;
+
+            try {
+                // Use dynamic import()
+                const { default: event }: { default: BotEvent; } = await import(fileUrl);
+
+                if (event.once) {
+                    client.once(event.name, (...args) => event.execute(...args, client));
+                } else {
+                    client.on(event.name, (...args) => event.execute(...args, client));
+                }
+                console.log(color("text", `🌠 Successfully loaded event ${color("variable", event.name)}`));
+            } catch (err) {
+                console.error(color("error", `❌ Error loading event ${file}: ${err}`));
+            }
+        }
+    } catch (err) {
+        console.error(color("error", `❌ Could not read events directory: ${err}`));
+    }
+};
