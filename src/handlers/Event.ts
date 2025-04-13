@@ -14,15 +14,12 @@ export default async (client: Client) => {
     try {
         const files = await readdir(eventsDir);
         for (const file of files) {
-            // Filter for .ts files (or .js if running the compiled version)
             if (!file.endsWith(".js")) continue;
 
             const filePath = join(eventsDir, file);
-            // Convert file path to file URL for dynamic import
             const fileUrl = pathToFileURL(filePath).href;
 
             try {
-                // Use dynamic import()
                 const { default: event }: { default: BotEvent; } = await import(fileUrl);
 
                 if (event.once) {

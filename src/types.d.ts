@@ -2,25 +2,16 @@ import { SlashCommandBuilder, ModalSubmitInteraction, CacheType, Collection, Per
 
 export interface ButtonHandler {
     customId?: string; // For matching an exact custom ID
-    customIdPrefix?: string; // For matching IDs that start with this prefix
-    // You could add other matchers later, like a regex: customIdRegex?: RegExp;
+    customIdPrefix?: string; // For matching IDs that start with prefix (lang_, create_ticket_, etc.)
+    // Other matchers can be added later (customIdRegex?: RegExp)
     execute: (interaction: ButtonInteraction<CacheType>, client : Client<true>) => Promise<void>;
 }
 
-export interface SlashCommand {
+export interface Command {
     command: SlashCommandBuilder,
     execute: (interaction : ChatInputCommandInteraction) => void,
     autocomplete?: (interaction: AutocompleteInteraction) => void,
-    modal?: (interaction: ModalSubmitInteraction<CacheType>) => void,
-    cooldown?: number // in seconds
-}
-
-export interface Command {
-    name: string,
-    execute: (message: Message, args: Array<string>) => void,
-    permissions: Array<PermissionResolvable>,
-    aliases: Array<string>,
-    cooldown?: number,
+    modal?: (interaction: ModalSubmitInteraction<CacheType>) => void
 }
 
 export interface BotEvent {
@@ -34,7 +25,6 @@ declare global {
         interface ProcessEnv {
             TOKEN: string,
             CLIENT_ID: string,
-            PREFIX: string,
             MONGO_URI: string,
             MONGO_DATABASE_NAME: string
         }
@@ -43,9 +33,7 @@ declare global {
 
 declare module "discord.js" {
     export interface Client {
-        slashCommands: Collection<string, SlashCommand>
-        commands: Collection<string, Command>,
-        cooldowns: Collection<string, number>,
+        commands: Collection<string, Command>
         buttonHandlersExact: Collection<string, ButtonHandler>;
         buttonHandlersPrefix: Collection<string, ButtonHandler>;
     }

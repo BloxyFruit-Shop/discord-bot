@@ -1,4 +1,4 @@
-import { ButtonHandler, Command, SlashCommand } from "~/types.js";
+import { ButtonHandler, Command } from "~/types.js";
 import { Client, GatewayIntentBits, Collection } from "discord.js";
 import { join, dirname } from "path";
 import { fileURLToPath, pathToFileURL } from "url";
@@ -14,9 +14,7 @@ const __dirname = dirname(__filename);
 const { Guilds, MessageContent, GuildMessages, GuildMembers } = GatewayIntentBits;
 const client = new Client({ intents: [Guilds, MessageContent, GuildMessages, GuildMembers] });
 
-client.slashCommands = new Collection<string, SlashCommand>();
 client.commands = new Collection<string, Command>();
-client.cooldowns = new Collection<string, number>();
 client.buttonHandlersExact = new Collection<string, ButtonHandler>();
 client.buttonHandlersPrefix = new Collection<string, ButtonHandler>();
 

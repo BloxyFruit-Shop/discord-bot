@@ -1,4 +1,4 @@
-import { Interaction, CacheType, ButtonInteraction } from "discord.js";
+import { Interaction, CacheType } from "discord.js";
 import { color } from '~/functions.js';
 import { getTranslations } from '~/lang/index.js';
 import { BotEvent, ButtonHandler } from "~/types.js";
@@ -7,35 +7,50 @@ const event: BotEvent = {
     name: "interactionCreate",
     execute: async (interaction: Interaction<CacheType>) => {
         if (interaction.isChatInputCommand()) {
-            let command = interaction.client.slashCommands.get(interaction.commandName);
-            let cooldown = interaction.client.cooldowns.get(`${interaction.commandName}-${interaction.user.username}`);
-            if (!command) return;
-            if (command.cooldown && cooldown) {
-                if (Date.now() < cooldown) {
-                    interaction.reply(`You have to wait ${Math.floor(Math.abs(Date.now() - cooldown) / 1000)} second(s) to use this command again.`);
-                    setTimeout(() => interaction.deleteReply(), 5000);
-                    return;
+            let command = interaction.client.commands.get(interaction.commandName);
+            if (!command) {
+                console.error(color("error", `[InteractionCreate] ❓ No command matching ${interaction.commandName} was found.`));
+                try {
+                    await interaction.reply({ content: "Sorry, I couldn't find that command!", ephemeral: true });
+                } catch (replyError) {
+                     console.error(color("error", `[InteractionCreate] Failed to send 'command not found' reply: ${replyError}`));
                 }
-                interaction.client.cooldowns.set(`${interaction.commandName}-${interaction.user.username}`, Date.now() + command.cooldown * 1000);
-                setTimeout(() => {
-                    interaction.client.cooldowns.delete(`${interaction.commandName}-${interaction.user.username}`);
-                }, command.cooldown * 1000);
-            } else if (command.cooldown && !cooldown) {
-                interaction.client.cooldowns.set(`${interaction.commandName}-${interaction.user.username}`, Date.now() + command.cooldown * 1000);
+                return;
             }
-            command.execute(interaction);
+            
+            try {
+                await command.execute(interaction);
+            } catch (error) {
+                console.error(color("error", `[InteractionCreate] ❌ Error executing command ${interaction.commandName}: ${error}`));
+                const t = getTranslations(
+                    (interaction.locale as any) || 'en'
+                );
+                 const replyOptions = {
+                    content: t.GENERIC_ERROR || 'An error occurred while executing this command.',
+                    ephemeral: true,
+                };
+                try {
+                    if (interaction.replied || interaction.deferred) {
+                        await interaction.followUp(replyOptions);
+                    } else {
+                        await interaction.reply(replyOptions);
+                    }
+                } catch (replyError) {
+                    console.error(color("error", `[InteractionCreate] Failed to send error reply for command ${interaction.commandName}: ${replyError}`));
+                }
+            }
             return;
         }
 
         if (interaction.isAutocomplete()) {
-            const command = interaction.client.slashCommands.get(interaction.commandName);
+            const command = interaction.client.commands.get(interaction.commandName);
             if (!command) {
                 console.error(`No command matching ${interaction.commandName} was found.`);
                 return;
             }
             try {
                 if (!command.autocomplete) return;
-                command.autocomplete(interaction);
+                await command.autocomplete(interaction);
             } catch (error) {
                 console.error(error);
             }
@@ -43,14 +58,14 @@ const event: BotEvent = {
         }
 
         if (interaction.isModalSubmit()) {
-            const command = interaction.client.slashCommands.get(interaction.customId);
+            const command = interaction.client.commands.get(interaction.customId);
             if (!command) {
                 console.error(`No command matching ${interaction.customId} was found.`);
                 return;
             }
             try {
                 if (!command.modal) return;
-                command.modal(interaction);
+                await command.modal(interaction);
             } catch (error) {
                 console.error(error);
             }
@@ -112,7 +127,7 @@ const event: BotEvent = {
                     console.error(color("error", `[InteractionCreate] Failed to send 'unhandled button' reply: ${replyError}`));
                 }
             }
-            return; // Button interaction handled
+            return;
         }
     }
 };
