@@ -158,7 +158,7 @@ export const initializeShopify = (): Promise<void> => {
 };
 
 const ensureInitialized = (): { client: GraphqlClient, session: Session, api: Shopify; } => {
-    if (!graphqlClient || !shopifySession || !shopifyInstance) { // Check renamed variable
+    if (!graphqlClient || !shopifySession || !shopifyInstance) {
         throw new Error("Shopify client has not been initialized. Call initializeShopify() first.");
     }
     return { client: graphqlClient, session: shopifySession, api: shopifyInstance };
@@ -177,15 +177,15 @@ export const getFulfillmentOrderDetails = async (orderId: string | number): Prom
       query GetFulfillmentOrdersWithLineItems($orderId: ID!) {
         order(id: $orderId) {
           id
-          fulfillmentOrders(first: 10) { # Adjust 'first' if needed
+          fulfillmentOrders(first: 10) {
             edges {
               node {
                 id # FulfillmentOrder GID
-                lineItems(first: 100) { # Adjust 'first' if needed
+                lineItems(first: 100) {
                   edges {
                     node {
-                      id # FulfillmentOrderLineItem GID
-                      remainingQuantity # <-- Fetch the correct field
+                      id
+                      remainingQuantity
                     }
                   }
                 }
@@ -222,8 +222,7 @@ export const getFulfillmentOrderDetails = async (orderId: string | number): Prom
 
                 const lineItems = fulfillmentOrderNode.lineItems?.edges
                     ?.map(lineItemEdge => lineItemEdge?.node)
-                    // Filter based on the correct field name
-                    .filter((item): item is FulfillmentOrderLineItem => !!item?.id && typeof item.remainingQuantity === 'number' && item.remainingQuantity > 0); // Also ensure remainingQuantity > 0
+                    .filter((item): item is FulfillmentOrderLineItem => !!item?.id && typeof item.remainingQuantity === 'number' && item.remainingQuantity > 0);
 
                 if (lineItems && lineItems.length > 0) {
                     return {

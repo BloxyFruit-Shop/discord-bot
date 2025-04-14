@@ -10,6 +10,10 @@ import 'dotenv/config';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+// For dev testing
+const TEST_GUILD_ID = process.env.TEST_GUILD_ID;
+const IS_DEV = !!TEST_GUILD_ID;
+
 export default async (client: Client) => {
     const commands: SlashCommandBuilder[] = [];
     const commandsDir = join(__dirname, "../commands"); 
@@ -47,12 +51,26 @@ export default async (client: Client) => {
     const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
 
     try {
-        console.log(color("text", `⏳ Started refreshing ${commands.length} application (/) commands.`));
-        const data: any = await rest.put(
-            Routes.applicationCommands(process.env.CLIENT_ID),
-            { body: commands.map(command => command.toJSON()) }
-        );
-        console.log(color("text", `🔥 Successfully loaded ${color("variable", data.length)} slash command(s)`));
+        const commandData = commands.map(command => command.toJSON());
+        let route: `/${string}`;
+        let mode: string;
+
+        if (IS_DEV && TEST_GUILD_ID) {
+            // Register to test guild
+            route = Routes.applicationGuildCommands(process.env.CLIENT_ID, TEST_GUILD_ID);
+            mode = `guild (${TEST_GUILD_ID})`;
+        } else {
+            // Register globally
+            route = Routes.applicationCommands(process.env.CLIENT_ID);
+            mode = "global";
+        }
+
+        console.log(color("text", `⏳ Started refreshing ${commands.length} application (/) commands (${mode}).`));
+
+        const data: any = await rest.put(route, { body: commandData });
+
+        console.log(color("text", `🔥 Successfully loaded ${color("variable", data.length)} slash command(s) (${mode})`));
+
     } catch (error) {
         console.error(color("error", `❌ Failed to register application commands: ${error}`));
     }

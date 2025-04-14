@@ -26,7 +26,12 @@ declare global {
             TOKEN: string,
             CLIENT_ID: string,
             MONGO_URI: string,
-            MONGO_DATABASE_NAME: string
+            MONGO_DATABASE_NAME: string,
+            SHOPIFY_ADMIN_API_KEY?: string,
+            SHOPIFY_ADMIN_API_SECRET?: string,
+            SHOPIFY_ADMIN_API_TOKEN?: string,
+            SHOPIFY_STOREFRONT_TOKEN?: string,
+            SHOPIFY_URL?: string
         }
     }
 }

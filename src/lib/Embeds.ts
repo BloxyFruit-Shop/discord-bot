@@ -236,9 +236,9 @@ export const createSummaryEmbed = (
   const lang = ticket.language || 'en';
   const t = getTranslations(lang);
 
-  const statusEmojis: Partial<Record<IOrderItem['status'], string>> & { processing?: string, completed?: string } = {
-      pending: '⌛',
-      claimed: '✅',
+  const statusEmojis: Partial<Record<IOrderItem['status'], string>> & { processing?: string, completed?: string; } = {
+    pending: '⌛',
+    claimed: '✅',
   };
 
   const itemsStr = order.items
@@ -505,21 +505,22 @@ export const createTranscriptEmbed = (
 ): EmbedBuilder => {
   const { orderId, robloxUsername, timezone } = ticket;
   const itemsString = order.items
-      .map((item) => item.title)
-      .join(', ');
+    .map((item) => item.title)
+    .join(', ');
 
   return new EmbedBuilder()
-      .setColor('#45B7D1')
-      .setTitle(`Transcript generated for fulfilled order #${orderId}.`)
-      .setDescription(
-          `## The order ${orderId} has been fulfilled. A transcript has been generated for your reference.`
-      )
-      .addFields({
-          name: 'Order Details',
-          value: `Order ID: ${orderId}\nUsername: ${robloxUsername ?? 'N/A'}\nTimezone: ${timezone ?? 'N/A'}\nItems: ${itemsString || 'N/A'}`,
-      })
-      .setFooter(getFooter(client))
-      .setTimestamp();
+    .setColor('#4ECDC4')
+    .setTitle(`Transcript generated for fulfilled order #${orderId}.`)
+    .setDescription(
+      `The order ${orderId} has been fulfilled. A transcript has been generated for your reference.`
+    )
+    .addFields({
+      name: 'Order Details',
+      value: `Order ID: ${orderId}\nUsername: ${robloxUsername ?? 'N/A'}\nTimezone: ${timezone ?? 'N/A'}\nItems: ${itemsString || 'N/A'}`,
+    })
+    .setThumbnail("https://bloxyfruit.com/favicon.png")
+    .setFooter(getFooter(client))
+    .setTimestamp();
 };
 
 /**
