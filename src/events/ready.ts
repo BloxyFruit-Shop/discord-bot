@@ -1,10 +1,12 @@
 import { ActivityType, ChannelType, Client, Events } from 'discord.js';
 import { servers } from '~/config/servers.js';
 import { createClaimEmbed, createClaimButton } from '~/lib/Embeds.js';
-import { initializeModels, getModel } from '~/models.js';
+import { getModel } from '~/models.js';
 import { deleteTicketByChannelId } from '~/lib/TicketManager.js';
-import { color } from '~/functions.js';
+import { color, handleTimeoutDeletion } from '~/functions.js';
 import { BotEvent } from '~/types.js';
+import { cleanupOrphanedChannels, scheduleChannelDeletion } from '~/lib/DiscordUtils.js';
+import { addChannelTimeout } from '~/lib/TimeoutManager.js';
 
 const event: BotEvent = {
     name: Events.ClientReady,
@@ -15,14 +17,31 @@ const event: BotEvent = {
 
         try {
             // Cleanup Tickets for Deleted Channels
-            console.log(color('text', '🧹 Starting cleanup of tickets for deleted channels...'));
+            console.log(color('text', '🧹 Starting cleanup of tickets for deleted channels or uncompleted tickets...'));
             const Ticket = getModel('Ticket');
             const allTickets = await Ticket.find({}).lean();
             let cleanedCount = 0;
             for (const ticket of allTickets) {
                 try {
                     // Try to fetch the channel
-                    await client.channels.fetch(ticket.channelId);
+                    const ch = await client.channels.fetch(ticket.channelId);
+
+                    if (ticket.stage === 'finished' || ticket.stage === 'completed' || !ch || ch.type !== ChannelType.GuildText) continue;
+
+                    // Reset the timeout if the channel is still active
+                    const timeoutId = scheduleChannelDeletion(
+                        ch,
+                        1000 * 60 * 1, // 1 minute timeout for inactivity instead of two, so they can be deleted faster
+                        'Ticket Inactivity',
+                        handleTimeoutDeletion
+                    );
+
+                    // Store the timeout ID using the manager only if scheduling was successful
+                    if (timeoutId) {
+                        addChannelTimeout(ch.id, timeoutId);
+                    } else {
+                        console.error(color('error', `[Clean Up] Failed to schedule deletion for channel ${ch.id}. Timeout ID was null.`));
+                    }
                 } catch (error: any) {
                     // DiscordAPIError[10003]: Unknown Channel
                     if (error.code === 10003 || error.httpStatus === 404) {
@@ -36,6 +55,8 @@ const event: BotEvent = {
                 }
             }
             console.log(color('text', `🧹 Cleanup finished. Removed ${color('variable', cleanedCount)} ticket documents for deleted channels.`));
+
+            await cleanupOrphanedChannels(client, servers);
 
             // Setup Claim Channels
             console.log(color('text', '🔧 Setting up claim channels...'));

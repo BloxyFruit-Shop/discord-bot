@@ -1,18 +1,26 @@
-import { Client, Routes, SlashCommandBuilder } from "discord.js";
+import { Client, DiscordAPIError, Routes, SlashCommandBuilder } from "discord.js";
 import { REST } from "@discordjs/rest";
 import { readdir } from "fs/promises";
 import { join, dirname } from "path";
 import { fileURLToPath, pathToFileURL } from "url";
-import { color } from "~/functions.js";
+import { color, delay } from "~/functions.js";
 import { Command } from "~/types.js";
 import 'dotenv/config';
+import { servers } from '~/config/servers.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// For dev testing
-const TEST_GUILD_ID = process.env.TEST_GUILD_ID;
-const IS_DEV = !!TEST_GUILD_ID;
+// Probably move these to config later, for now imma leave them here
+
+// Delay between registering commands for each guild (in milliseconds)
+const GUILD_REGISTER_DELAY = 500; // Can test with lower numbers, but I find 500 should be good
+// Delay before starting the retry queue processing (in milliseconds)
+const RETRY_QUEUE_DELAY = 5000; // Wait 5 seconds before retrying failed guilds
+// Delay between retrying guilds in the queue
+const RETRY_GUILD_DELAY = 1000; // Using a slightly longer delay for retries
+// Maximum number of retry attempts for the entire queue
+const MAX_RETRY_ATTEMPTS = 3;
 
 export default async (client: Client) => {
     const commands: SlashCommandBuilder[] = [];
@@ -49,29 +57,94 @@ export default async (client: Client) => {
     }
 
     const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
+    const commandData = commands.map(command => command.toJSON());
+    // Using a Set here to avoid registering for the same guild ID multiple times
+    const uniqueGuildIds = new Set<string>(Object.values(servers).map(s => s.guild));
+    const retryQueue = new Set<string>(); // Using a Set for the retry queue as well
 
-    try {
-        const commandData = commands.map(command => command.toJSON());
-        let route: `/${string}`;
-        let mode: string;
+    console.log(color("text", `⏳ Started refreshing ${commands.length} application (/) commands for ${uniqueGuildIds.size} unique guilds.`));
 
-        if (IS_DEV && TEST_GUILD_ID) {
-            // Register to test guild
-            route = Routes.applicationGuildCommands(process.env.CLIENT_ID, TEST_GUILD_ID);
-            mode = `guild (${TEST_GUILD_ID})`;
-        } else {
-            // Register globally
-            route = Routes.applicationCommands(process.env.CLIENT_ID);
-            mode = "global";
+    for (const guildId of uniqueGuildIds) {
+        try {
+            const serverConfig = Object.values(servers).find(s => s.guild === guildId);
+            const serverName = serverConfig ? serverConfig.name : guildId;
+
+            console.log(color("text", `  -> Registering commands for guild: ${color("variable", serverName)} (${guildId})`));
+            const route = Routes.applicationGuildCommands(process.env.CLIENT_ID, guildId);
+            await rest.put(route, { body: commandData });
+            console.log(color("text", `  ✅ Successfully registered commands for guild: ${color("variable", serverName)}`));
+
+            await delay(GUILD_REGISTER_DELAY);
+        } catch (error: any) {
+            const serverConfig = Object.values(servers).find(s => s.guild === guildId);
+            const serverName = serverConfig ? serverConfig.name : guildId;
+
+            // Check if it's a rate limit error (HTTP 429)
+            if (error instanceof DiscordAPIError && error.status === 429) {
+                console.warn(color("warn", `  ⚠️ Rate limited on guild ${color("variable", serverName)} (${guildId}). Adding to retry queue.`));
+                retryQueue.add(guildId);
+                await delay(RETRY_QUEUE_DELAY); // Wait longer before next attempt
+            } else {
+                // Log other errors
+                const errorMessage = error.rawError?.message || error.message || error;
+                console.error(color("error", `❌ Failed to register commands for guild ${color("variable", serverName)} (${guildId}): ${errorMessage}`));
+                // These do not go towards the retry queue, review logs and fix manually
+            }
         }
-
-        console.log(color("text", `⏳ Started refreshing ${commands.length} application (/) commands (${mode}).`));
-
-        const data: any = await rest.put(route, { body: commandData });
-
-        console.log(color("text", `🔥 Successfully loaded ${color("variable", data.length)} slash command(s) (${mode})`));
-
-    } catch (error) {
-        console.error(color("error", `❌ Failed to register application commands: ${error}`));
     }
+    console.log(color("text", `🏁 Finished initial registration pass.`));
+
+    // Retry queue processing
+    let retryAttempts = 0;
+    while (retryQueue.size > 0 && retryAttempts < MAX_RETRY_ATTEMPTS) {
+        retryAttempts++;
+        console.log(color("text", `⏳ Starting retry attempt ${retryAttempts}/${MAX_RETRY_ATTEMPTS} for ${retryQueue.size} guilds after a delay...`));
+        await delay(RETRY_QUEUE_DELAY);
+
+        const guildsToRetry = Array.from(retryQueue); // Create a snapshot for this attempt
+        retryQueue.clear(); // Clear the main queue, will re-add failures
+
+        for (const guildId of guildsToRetry) {
+            try {
+                const serverConfig = Object.values(servers).find(s => s.guild === guildId);
+                const serverName = serverConfig ? serverConfig.name : guildId;
+
+                console.log(color("text", `  [RETRY ${retryAttempts}] -> Registering commands for guild: ${color("variable", serverName)} (${guildId})`));
+                const route = Routes.applicationGuildCommands(process.env.CLIENT_ID, guildId);
+                await rest.put(route, { body: commandData });
+                console.log(color("text", `  [RETRY ${retryAttempts}] ✅ Successfully registered commands for guild: ${color("variable", serverName)}`));
+
+                // Success, don't add back to retryQueue
+
+                await delay(RETRY_GUILD_DELAY); // Use the retry delay between attempts
+            } catch (error: any) {
+                const serverConfig = Object.values(servers).find(s => s.guild === guildId);
+                const serverName = serverConfig ? serverConfig.name : guildId;
+
+                // Still failing, add back to the queue for the next attempt
+                retryQueue.add(guildId);
+
+                if (error instanceof DiscordAPIError && error.status === 429) {
+                    console.warn(color("warn", `  [RETRY ${retryAttempts}] ⚠️ Still rate limited on guild ${color("variable", serverName)} (${guildId}). Will retry again if possible.`));
+                     await delay(RETRY_QUEUE_DELAY);
+                } else {
+                    const errorMessage = error.rawError?.message || error.message || error;
+                    console.error(color("error", `  [RETRY ${retryAttempts}] ❌ Failed to register commands for guild ${color("variable", serverName)} (${guildId}): ${errorMessage}`));
+                }
+            }
+        }
+    }
+
+    if (retryQueue.size > 0) {
+        console.error(color("error", `❌ Failed to register commands for ${retryQueue.size} guilds after ${MAX_RETRY_ATTEMPTS} attempts:`));
+        for (const guildId of retryQueue) {
+             const serverConfig = Object.values(servers).find(s => s.guild === guildId);
+             const serverName = serverConfig ? serverConfig.name : guildId;
+             console.error(color("error", `  - ${color("variable", serverName)} (${guildId})`));
+        }
+    } else if (retryAttempts > 0) {
+         console.log(color("text", `✅ Successfully registered commands for all guilds after ${retryAttempts} retry attempt(s).`));
+    }
+
+    console.log(color("text", `🔥 Finished refreshing application commands.`));
 };

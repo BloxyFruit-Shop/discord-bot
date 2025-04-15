@@ -9,7 +9,6 @@ import { servers } from '~/config/servers.js';
 import {
   createTicketInDB,
   findTicketsByUserId,
-  updateTicketByChannelId,
 } from '~/lib/TicketManager.js';
 import {
   createWelcomeEmbed,
@@ -17,28 +16,10 @@ import {
 } from '~/lib/Embeds.js';
 import { addChannelTimeout } from '~/lib/TimeoutManager.js';
 import { scheduleChannelDeletion } from '~/lib/DiscordUtils.js';
-import { color } from '~/functions.js';
+import { color, handleTimeoutDeletion } from '~/functions.js';
 import { getTranslations } from '~/lang/index.js';
 
 const TICKET_TIMEOUT = 60 * 1000 * 2; // 2 minutes timeout for inactivity
-
-const handleTimeoutDeletion = async (channelId: string): Promise<void> => {
-  console.log(color('text', `[CreateTicketCallback] Handling timeout cleanup for channel ${channelId}.`));
-  try {
-      // Find the ticket and update its stage to 'cancelled'
-      const updatedTicket = await updateTicketByChannelId(channelId, {
-          stage: 'cancelled',
-      });
-      if (updatedTicket) {
-          console.log(color('text', `[CreateTicketCallback] Marked ticket ${updatedTicket._id} (channel ${channelId}) as cancelled due to inactivity timeout.`));
-      } else {
-          // This might happen if the ticket was deleted manually before the timeout callback ran
-          console.warn(color('warn', `[CreateTicketCallback] Ticket for channel ${channelId} not found during timeout cleanup.`));
-      }
-  } catch (error) {
-      console.error(color('error', `[CreateTicketCallback] Error updating ticket stage for timed-out channel ${channelId}: ${error}`));
-  }
-};
 
 const createTicketHandler: ButtonHandler = {
   customIdPrefix: 'create_ticket_',
@@ -140,14 +121,14 @@ const createTicketHandler: ButtonHandler = {
         'Ticket Inactivity',
         handleTimeoutDeletion
       );
-      
+
       // Store the timeout ID using the manager only if scheduling was successful
       if (timeoutId) {
         addChannelTimeout(ticketChannel.id, timeoutId);
       } else {
         console.error(color('error', `[CreateTicket] Failed to schedule deletion for channel ${ticketChannel.id}. Timeout ID was null.`));
       }
-      
+
       // Send Welcome Message
       const welcomeEmbed = createWelcomeEmbed(interaction.client);
       const languageButtons = createLanguageSelection();
@@ -156,12 +137,12 @@ const createTicketHandler: ButtonHandler = {
         embeds: [welcomeEmbed],
         components: [languageButtons],
       });
-      
+
       // Send confirmation message to the user
       await interaction.editReply({
         content: `Ticket created! Please head over to ${ticketChannel} to continue.`,
       });
-      
+
     } catch (error) {
       console.error(
         color('error', `[CreateTicket] Error creating ticket: ${error}`)

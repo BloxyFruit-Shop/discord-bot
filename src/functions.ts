@@ -1,5 +1,6 @@
 import chalk from "chalk"
 import { GuildMember, PermissionFlagsBits, PermissionResolvable, TextChannel } from "discord.js"
+import { deleteTicketByChannelId } from './lib/TicketManager.js';
 
 type colorType = "text" | "variable" | "error" | "warn"
 
@@ -33,3 +34,20 @@ export const sendTimedMessage = (message: string, channel: TextChannel, duration
         .then(m => setTimeout(async () => (await channel.messages.fetch(m)).delete(), duration))
     return
 }
+
+export const handleTimeoutDeletion = async (channelId: string): Promise<void> => {
+  console.log(color('text', `[CreateTicketCallback] Handling timeout cleanup for channel ${channelId}.`));
+  try {
+    // Delete the ticket from db
+    await deleteTicketByChannelId(channelId);
+    console.log(color('text', `[CreateTicketCallback] Deleted ticket associated with channel ${channelId}.`));
+  } catch (error) {
+    console.error(color('error', `[CreateTicketCallback] Error updating ticket stage for timed-out channel ${channelId}: ${error}`));
+  }
+};
+
+/**
+ * Helper function to introduce a delay.
+ * @param ms - Milliseconds to wait.
+ */
+export const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));

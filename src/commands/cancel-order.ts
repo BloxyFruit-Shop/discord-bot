@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction, ChannelType, GuildMember, TextChannel } from "discord.js";
 import { Command } from "~/types";
 import { servers } from '~/config/servers.js';
-import { findTicketByChannelId, updateTicketByChannelId } from "~/lib/TicketManager.js";
+import { deleteTicketByChannelId, findTicketByChannelId } from "~/lib/TicketManager.js";
 import { getModel } from "~/models.js";
 import { color } from "~/functions.js";
 import { getTranslations } from "~/lang/index.js";
@@ -58,8 +58,8 @@ const command: Command = {
         return;
       }
 
-      // Update ticket stage to reflect cancellation (optional, but good practice)
-      await updateTicketByChannelId(interaction.channelId, { stage: 'cancelled' });
+      // Delete ticket
+      await deleteTicketByChannelId(interaction.channelId);
 
       const cancelled = cancelChannelTimeout(interaction.channelId);
       if (cancelled) {
