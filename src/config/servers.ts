@@ -169,4 +169,4 @@ const devServers = {
   }
 } as const;
 
-export const servers = devServers;
+export const servers = prodServers;
