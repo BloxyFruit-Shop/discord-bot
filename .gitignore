@@ -1,4 +1,8 @@
 .qodo
 .env
-/node_modules
 ticketStages.json
+node_modules
+build
+.vscode
+dist
+bun.lock
