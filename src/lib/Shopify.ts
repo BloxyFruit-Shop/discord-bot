@@ -68,6 +68,25 @@ interface FulfillmentCreateData {
     } | null;
 }
 
+interface OrderCancelData {
+    orderCancel?: {
+        // The response structure might change if refund is boolean,
+        // but we only care about userErrors for now.
+        userErrors: {
+            field: string[];
+            message: string;
+        }[];
+    } | null;
+}
+
+export enum OrderCancelReason {
+    CUSTOMER = "CUSTOMER",
+    FRAUD = "FRAUD",
+    INVENTORY = "INVENTORY",
+    DECLINED = "DECLINED",
+    OTHER = "OTHER",
+}
+
 // Module State
 let shopifyInstance: Shopify | null = null;
 let shopifySession: Session | null = null;
@@ -340,6 +359,114 @@ export const fulfillOrderLineItems = async (fulfillmentDetails: FulfillmentOrder
         if (error instanceof ShopifyError && error.message) {
             console.error(color("error", `🛍️ GraphQL Error from ShopifyError: ${error.message}`));
         }
+        return false;
+    }
+};
+
+/**
+ * Cancels a Shopify order with a staff note, always using 'OTHER' reason and attempting a refund.
+ * @param orderId The numeric part of the Shopify Order ID.
+ * @param staffNote A note to add to the order cancellation for internal reference.
+ * @param notifyCustomer Whether to send a notification email to the customer (defaults to false).
+ * @param restock Whether to restock the items (defaults to false).
+ * @returns Promise<boolean> True if the order was cancelled successfully, false otherwise.
+ */
+export const cancelOrder = async (
+    orderId: string | number,
+    staffNote: string,
+    notifyCustomer: boolean = false,
+    restock: boolean = false
+): Promise<boolean> => {
+    const { client, api } = ensureInitialized();
+    const shopifyOrderId = `gid://shopify/Order/${orderId}`;
+
+    const mutation = `
+      mutation orderCancel(
+          $orderId: ID!,
+          # $reason is removed, hardcoded below
+          $notifyCustomer: Boolean,
+          $restock: Boolean!,
+          $refund: Boolean!,
+          $staffNote: String
+        ) {
+        orderCancel(
+            orderId: $orderId,
+            reason: OTHER,         # Hardcoded reason
+            notifyCustomer: $notifyCustomer,
+            restock: $restock,
+            refund: $refund,
+            staffNote: $staffNote  # Pass staffNote variable
+        ) {
+          userErrors {
+            field
+            message
+          }
+        }
+      }`;
+
+    // Always refund - I did not find a reason to not refund? So I'll just hardcode it to true. Change if needed
+    const refundValue: boolean = true;
+
+    try {
+        console.log(color("text", `🛍️ Attempting to cancel Order ID: ${orderId} using API version: ${api.config.apiVersion}`));
+        console.log(color("text", `   Reason: OTHER (hardcoded), Notify: ${notifyCustomer}, Restock: ${restock}`));
+        console.log(color("text", `   Refund: ${refundValue}, Staff Note: "${staffNote}"`)); // Log staff note
+
+        const response = await client.request<OrderCancelData>(mutation, {
+            variables: {
+                orderId: shopifyOrderId,
+                notifyCustomer: notifyCustomer,
+                restock: restock,
+                refund: refundValue,
+                staffNote: staffNote,
+            },
+        });
+
+        console.log("🛍️ Raw Order Cancel Response:", JSON.stringify(response, null, 2));
+
+        if (response.errors) {
+            console.error(color("error", `🛍️ GraphQL Errors returned in response for ${orderId}:`), JSON.stringify(response.errors, null, 2));
+        }
+
+        const userErrors = response.data?.orderCancel?.userErrors;
+        if (userErrors && userErrors.length > 0) {
+            console.error(color("error", `🛍️ UserErrors during order cancellation for ${orderId}:`), userErrors.map(e => `${e.field?.join('.') || 'general'}: ${e.message}`).join('; '));
+            return false;
+        }
+
+        if (!response.errors && (!userErrors || userErrors.length === 0)) {
+             console.log(color("text", `🛍️ Successfully requested cancellation for Order ID: ${orderId}. Check Shopify Admin to confirm status.`));
+             return true;
+        } else {
+            console.warn(color("warn", `🛍️ Cancellation request for ${orderId} completed but contained GraphQL or User errors. See logs above.`));
+            return false;
+        }
+
+    } catch (error) {
+        console.error(color("error", `--- ERROR during cancelOrder for Order ID: ${orderId} ---`));
+        if (error instanceof ShopifyError) {
+            console.error(color("error", `Type: ShopifyError`));
+            console.error(color("error", `Message: ${error.message}`));
+            if (error.message) {
+                 console.error(color("error", `Error message: ${JSON.stringify(error.message, null, 2)}`));
+            }
+            if (error.cause) {
+                 console.error(color("error", `Error cause: ${JSON.stringify(error.cause, null, 2)}`));
+            }
+             if (error.stack) {
+                console.error(color("error", `Stack Trace:\n${error.stack}`));
+            }
+        } else if (error instanceof Error) {
+            console.error(color("error", `Type: Generic Error`));
+            console.error(color("error", `Message: ${error.message}`));
+            if (error.stack) {
+                console.error(color("error", `Stack Trace:\n${error.stack}`));
+            }
+        } else {
+            console.error(color("error", `Type: Unknown`));
+            console.error(color("error", `Caught Object: ${JSON.stringify(error)}`));
+        }
+        console.error(color("error", `--- End Error Details for Order ID: ${orderId} ---`));
         return false;
     }
 };
