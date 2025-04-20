@@ -1,4 +1,5 @@
 import type { ServerKey, ServerConfig } from '~/types/config.js';
+import 'dotenv/config';
 
 const prodServers: Record<ServerKey, ServerConfig> = {
   rivals: {
@@ -169,4 +170,7 @@ const devServers = {
   }
 } as const;
 
-export const servers = prodServers;
+const isDevelopment = process.env.NODE_ENV === 'development';
+console.log(`[Config] Running in ${isDevelopment ? 'development' : 'production'} mode.`);
+
+export const servers = isDevelopment ? devServers : prodServers;
