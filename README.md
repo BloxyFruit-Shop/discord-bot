@@ -1,430 +1,346 @@
-# Discord Bot Documentation
 
-This document aims to provide a comprehensive overview of the present Discord bot. This includes commands, configuration, and internal workings.
+# BloxyFruit Discord Bot
 
-The bot is designed to manage a ticketing system for order fulfillment across multiple Discord servers, each representing a different roblox game. It integrates with Shopify our MongoDB for order processing, although data persistency is handled with the `ticketStages.json` file.
+This documentation provides a complete, **up-to-date overview of the modular, type-safe BloxyFruit Discord bot**. It details the technical design, extensibility patterns, ticket workflow, command/event handling, and *development lifecycle* for new developers.
+
+---
 
 ## Table of Contents
 
-1. [Introduction](#introduction)
-2. [Dependencies](#dependencies)
-3. [Configuration](#configuration)
+1. [Overview](#overview)
+2. [Architecture & Structure](#architecture--structure)
+3. [Workflow](#workflow)
+    - [Ticket Stages & Lifecycle](#ticket-stages--lifecycle)
+    - [Each Step](#each-step)
+    - [Automatic Channel Cleanup & Timeouts](#automatic-channel-cleanup--timeouts)
+4. [Core Modules & Extensibility](#core-modules--extensibility)
+    - [Dynamic Handler Loading](#dynamic-handler-loading)
+    - [Command & Button Handlers](#command--button-handlers)
+    - [Utility & Helper Layers](#utility--helper-layers)
+    - [Type Safety Across Layers](#type-safety-across-layers)
+5. [Database-First Ticket System (NO ticketStages.json!)](#database-first-ticket-system-no-ticketstagesjson)
+6. [Commands & Permissions](#commands--permissions)
+7. [Configuration](#configuration)
+    - [Server & Channel/Role Mappings](#server--channelrole-mappings)
+    - [Environment & Secrets](#environment--secrets)
+8. [Development & Deployment Guide](#development--deployment-guide)
+    - [Running the bot in dev mode](#running-the-bot-in-dev-mode)
+    - [Recommended .env Setup](#recommended-env-setup)
+    - [Contribution Best Practices](#contribution-best-practices)
+9. [How to Extend the Bot](#how-to-extend-the-bot)
+10. [FAQ & Troubleshooting](#faq--troubleshooting)
 
-- [Environment Variables](#environment-variables)
-- [Server Configuration](#server-configuration)
-- [Ticket Timeout](#ticket-timeout)
+---
 
-4. [Core Functionality](#core-functionality)
+## Overview
 
-- [Ticket Stages](#ticket-stages)
-- [Loading and Saving Ticket Stages](#loading-and-saving-ticket-stages)
-- [Ticket Deletion Scheduling](#ticket-deletion-scheduling)
-- [Stale Ticket Cleanup](#stale-ticket-cleanup)
+The BloxyFruit Discord Bot is a **modern, fully modular TypeScript application** designed for scalable ticket management and order fulfillment across our multiple Roblox gaming communities. **All workflow state now persists in a MongoDB database**—*no more ticketStages.json*. 
 
-5. [Event Handlers](#event-handlers)
+Key features:
 
-- [`ready`](#ready-event)
-- [`interactionCreate`](#interactioncreate-event)
-- [`messageCreate`](#messagecreate-event)
-- [`rateLimited`](#ratelimited-event)
+- Modular handler and event-based architecture
+- All active tickets, workflow stages, and user data persist in MongoDB
+- Discord.js per-guild command registration, and dynamic event wiring
+- Fully type-safe via TypeScript
+- Extensible: Add games, commands, workflows, or integrations with zero core changes
 
-6. [Functions](#functions)
+---
 
-- [`handleTicketCreation(interaction)`](#handleticketcreationinteraction)
-- [`handleLanguageSelection(interaction, ticketStage)`](#handlelanguageselectioninteraction-ticketstage)
-- [`handleOrderVerification(serverName, message, ticketStage)`](#handleorderverificationservername-message-ticketstage)
-- [`handleUsernameButton(interaction, ticketStage)`](#handleusernamebuttoninteraction-ticketstage)
-- [`handleUsernameSubmission(message, ticketStage)`](#handleusernamesubmissionmessage-ticketstage)
-- [`handleTimezoneSelection(interaction, ticketStage)`](#handletimezoneselectioninteraction-ticketstage)
-- [`handleSlashCommands(interaction, ticketStage)`](#handleslashcommandsinteraction-ticketstage)
-- [`clearDeletionTimeout(channelId)`](#cleardeletiontimeoutchannelid)
+## Architecture & Structure
 
-7. [Slash Commands](#slash-commands)
+Directory/file structure (`src/`):
 
-- [`/fulfill-order`](#fulfill-order)
-- [`/delete-completed`](#delete-completed)
-- [`/delete-ticket`](#delete-ticket)
-- [`/cancel-order`](#cancel-order)
-- [`/generate-transcript`](#generate-transcript)
-
-8. [Data Structures](#data-structures)
-
-- `servers`
-- `ticketStages`
-
-9. [External Modules](#external-modules)
-
-- [`./mongo`](#mongo)
-- [`./embeds`](#embeds)
-- [`./shopify`](#shopify)
-- [`./translations`](#translations)
-
-## 1. Introduction <a name="introduction"></a>
-
-The Discord bot bridges customers placing orders through the online shop and the staff fulfilling those orders. It creates a dedicated ticket channel for each order and guides the customer through the following steps:
-
-1. **Language Selection:**  
-   The user selects their preferred language (English or Spanish).
-
-2. **Order ID Verification:**  
-   The user provides their order ID which the bot validates by querying the database.
-
-3. **Timezone Selection:**  
-   After order verification, the user chooses a timezone for scheduling purposes.
-
-> **Note:** The previous step for submitting a Roblox username has been removed. The website now handles the collection of the Roblox account information, and the bot automatically sets the username from the order data.
-
-Staff members can manage tickets with slash commands, such as marking orders as fulfilled, canceling orders, or deleting tickets. The bot also handles cleanup of inactive or completed tickets.
-
-## 2. Dependencies <a name="dependencies"></a>
-
-The bot relies on:
-
-- **`discord.js`**: The library for interacting with the Discord API. Used for creating the bot, event handling, and managing channels, messages, embeds, and buttons.
-- **`fs`**: Node.js's built-in file system module. Used for persistent storage of `ticketStages` data in `ticketStages.json`.
-- **`./mongo`**: A custom module for interacting with a MongoDB database. Handles storage and retrieval of **order** information.
-- **`./embeds`**: A custom module providing functions to create pre-designed Discord embeds used in the bot's workflow.
-- **`./shopify`**: A custom module for interacting with the Shopify API. Handles order fulfillment.
-- **`./translations`**: A custom module to handle embed's translations.
-- **`dotenv`**: Loads environment variables from a `.env` file, securely storing sensitive data like the bot token and API keys.
-
-## 3. Configuration <a name="configuration"></a>
-
-### Environment Variables <a name="environment-variables"></a>
-
-The bot uses environment variables for configuration, loaded using the `dotenv` module. The key environment variable is:
-
-- **`DISCORD_TOKEN`**: The bot's secret token, required for connecting to Discord. This should be kept private.
-- **`MONGO_URI`**: The connection string for the MongoDB database.
-- **`SHOPIFY_ADMIN_API_KEY`**: Shopify Admin API key.
-- **`SHOPIFY_ADMIN_API_SECRET`**: Shopify Admin API secret key.
-- **`SHOPIFY_ADMIN_API_TOKEN`**: Shopify Admin API access token.
-- **`SHOPIFY_STOREFRONT_TOKEN`**: Shopify Storefront API access token.
-- **`SHOPIFY_URL`**: The URL of the Shopify store.
-
-Whenever using, or developing features for the bot, ensure to set these environment variables correctly.
-
-### Server Configuration <a name="server-configuration"></a>
-
-The `servers` object (in `server-config.js`) defines configurations for each supported Discord server:
-
-```javascript
-const servers = {
-  game: {
-    name: 'name-of-the-game',
-    guild: '123456789',
-    claim: '123456789',
-    'admin-role': '123456789',
-    'customer-role': '123456789',
-    'reviews-channel': '123456789',
-    transcript: '123456789'
-  }
-};
+```
+src/
+│
+├── index.ts                # Entrypoint: loads handlers, sets up client, env, models
+│
+├── handlers/               # Dynamic loaders (auto-wiring)
+│   ├── Button.ts
+│   ├── Command.ts
+│   └── Event.ts
+│
+├── buttons/                # Per-button interaction handlers by customId or prefix
+│   └── [button].ts
+├── commands/               # Slash command logic (file -> command)
+│   └── [command].ts
+├── events/                 # Discord gateway event listeners (ready, messageCreate, etc.)
+│   └── [event].ts
+│
+├── lib/                    # Core business: tickets, Mongo, Shopify, Discord utils, embeds
+│   ├── Mongo.ts
+│   ├── TicketManager.ts
+│   ├── Shopify.ts
+│   ├── DiscordUtils.ts
+│   ├── Embeds.ts
+│   └── [etc].ts
+│
+├── config/                 # Static configuration
+│   ├── servers.ts          # All production/dev server/role/channel mappings
+│   ├── [other config].ts
+│
+├── lang/                   # i18n support: per-language text files
+├── schemas/                # Mongoose/model schemas (Ticket, Order, etc.)
+├── types/                  # TypeScript type definitions
+│   ├── config.ts
+│   ├── translations.ts
+│   └── [etc].ts
+│
+├── functions.ts            # Shared helper functions (color, delay, etc.)
+└── models.ts               # Mongoose model initialization
 ```
 
-Each server configuration includes:
+**Key Architectural Traits:**
 
-- **`name`**: A short name for the server (e.g., "rivals", "blox-fruits").
-- **`guild`**: The Discord server's unique ID.
-- **`claim`**: The ID of the channel where users can create new tickets.
-- **`admin-role`**: The ID of the role that grants users permission to use administrative slash commands.
-- **`customer-role`**: The ID of the role assigned to users after their order is fulfilled.
-- **`reviews-channel`**: The ID of the channel where users are prompted to leave reviews after order completion.
-- **`transcript`**: The ID of the channel where the transcript of the ticket conversation is meant to be send after fulfillment.
+- All workflow logic is *decoupled*: Commands, events, button handlers are modular
+- Database is the single source of truth for ticket state 
+- Handlers are dynamically loaded with no hard-coded registration required
+- All interactions (from API to Discord) are type-checked for safety
 
-### Ticket Timeout <a name="ticket-timeout"></a>
+---
 
-- **`TICKET_TIMEOUT`**: Inactivity period (milliseconds) before automatic ticket deletion. Set to `60 * 1000` (1 minute).
+## Workflow
 
-## 4. Core Functionality <a name="core-functionality"></a>
+### Ticket Stages & Lifecycle
 
-### Ticket Stages <a name="ticket-stages"></a>
+Every incoming support request follows a strict, persistently stored workflow. Each ticket is a **MongoDB document** (not an in-memory object nor stored in a file) with fields representing its workflow stage and all related user and order data.
 
-The `ticketStages` object is the central data structure for managing the state of each ticket. It's a dictionary where keys are channel IDs and values are objects containing ticket information:
+**Stages:**
+- `languagePreference`: User chooses preferred language (button).
+- `orderVerification`: User submits their order ID. Bot pulls and validates from DB, and sets Roblox username automatically via order info.
+- `timezone`: User selects timezone for delivery coordination.
+- `finished`: Workflow data complete—ticket is summarized, ready for staff action.
 
-```javascript
-ticketStages = {
-  1234567890: {
-    // Channel ID
-    stage: 'languagePreference', // Current stage of the ticket
-    language: null, // Selected language ('en' or 'es')
-    orderId: null, // The customer's order ID
-    robloxUsername: null, // The customer's Roblox username
-    timezone: null, // The customer's selected timezone
-    serverName: 'rivals', // The server the ticket belongs to
-    userId: '9876543210', // The ID of the user who created the ticket
-    deletionTimeout: 12345, // Timeout ID for scheduled deletion
-    orderDetails: {} // The complete order object retrieved by the bot
-  }
-  // ... other tickets ...
-};
+**On ticket creation**, a new Ticket document is created in MongoDB with stage `languagePreference`. Channel/user/server info are all stored.
+
+**At each user interaction (button/message):**
+- Bot updates the Ticket document in DB, changing its `stage`, `language`, `orderId`, etc.
+- Any deletion/cleanup/summaries reference the latest ticket state *directly* from the DB.
+
+### Each Step
+
+#### 1. **Create Ticket Button**
+- User clicks “Claim Ticket” button in configured claim channel.
+- Bot creates private ticket channel, sets permissions, saves a new ticket in MongoDB.
+
+#### 2. **Language Selection**
+- Bot sends "Choose your language" (embed with buttons).
+- User selects; Ticket `language` is updated, stage advances to `orderVerification`.
+
+#### 3. **Order Verification**
+- Bot prompts for order ID.
+- User enters ID; bot checks MongoDB `Order` collection for existence and state.
+  - Handles errors: not found, already claimed, wrong game, missing data, etc.
+- If order is valid, order data and username is set on ticket, stage transitions to `timezone`.
+
+#### 4. **Timezone Selection**
+- Bot sends timezone selection buttons; user clicks.
+- Ticket updated with timezone, stage becomes `finished`.
+
+#### 5. **Finalization**
+- Bot posts a summary embed and notifies staff/admins.
+- Staff uses slash commands to take action.
+
+### Automatic Channel Cleanup & Timeouts
+
+- **`scheduleChannelDeletion(channel, timeout, reason)`** in `lib/DiscordUtils.ts`: Schedules deletion of inactive ticket channels after a specified timeout (e.g., 1 minute).
+- Timeout info is not stored on the ticket record but managed in memory for each channel.
+- **`cleanupOrphanedChannels(client, servers)`**: On startup/manual, removes orphans (ticket channels in Discord not present in DB).
+
+---
+
+## Core Modules & Extensibility
+
+### Dynamic Handler Loading
+
+- On startup, `index.ts` loads all files in `/handlers/` and executes each with the Discord client.
+- Each handler (`Button.ts`, `Command.ts`, `Event.ts`) loads the files in their domain-specific folder (buttons, commands, events).
+- *No hard-coded/linear registration!* Add a file to the right folder and it’s available instantly.
+
+### Command & Button Handlers
+
+- **Commands**: Each `/commands/[name].ts` file exports a SlashCommand object.
+  - Registered to every configured guild in `/config/servers.ts` (see prod/dev toggling below).
+  - Uses Discord.js’s typings for robust validation, less runtime error.
+
+- **Buttons**: Each `/buttons/[name].ts` exports a handler implementing `{ customId, customIdPrefix, execute }`.
+  - Routed automatically by the Button handler loader.
+  - Supports both exact and prefix matching (`customIdPrefix` for dynamic parameters in button IDs).
+
+- **Events**: All listeners (`messageCreate`, `interactionCreate`, `ready`, etc.) live in `/events/`, modular back to a file/function per event.
+
+### Utility & Helper Layers
+
+- **Embeds.ts**: Creates all standard embeds (welcome, summary, errors) and button layouts. i18n support is here.
+- **TicketManager.ts**: All ticket database logic (CRUD) in one place. Always fetch from DB for up-to-date workflow.
+- **DiscordUtils.ts**: Utilities for scheduling deletion of stale ticket channels, orphan/channel cleanup, etc.
+- **Shopify.ts**: Integration and logic for order fulfillment through Shopify’s API.
+- **Mongo.ts**: DB connection pooling, safety (auto-reconnect), and health logging.
+
+### Type Safety Across Layers
+
+- Every handler, helper, config, and business entity has a clearly defined TypeScript type, found in `/types/` and `/schemas/`.
+- Reduces chance for silent errors and allows easy API exploration within IDEs.
+
+---
+
+## Database-First Ticket System (NO ticketStages.json)
+
+**All ticket state—stages, fields, metadata now lives in our MongoDB**. The former `ticketStages.json` file is entirely obsolete and unused in this implementation.
+
+**Where is ticket state stored?**
+- Ticket documents (`schemas/Ticket.ts`) in MongoDB store all workflow details.
+- All bot logic fetches/mutates ticket state through typed database operations (see `/lib/TicketManager.ts` for reference).
+
+**What if the bot restarts or crashes?**
+- No state is lost; ticket channels and all workflow position are persistent.
+- Both user and staff can resume ticket handling at the exact last step thanks to DB source-of-truth.
+
+**Data structure:**
+```ts
+interface ITicket {
+    channelId: string;
+    userId: string;
+    serverName: string;
+    stage: "languagePreference" | "orderVerification" | "timezone" | "finished";
+    language?: "en" | "es";
+    orderId?: string;
+    order?: ...;            // Linked via ObjectId or populated data
+    timezone?: string;
+    createdAt: Date;
+    updatedAt: Date;
+    // ...other fields, see schema
+}
+```
+All queries and business logic flow through this persistent model.
+
+---
+
+## Commands & Permissions
+
+| Command                | Description |
+|------------------------|-------------|
+| `/fulfill-order`       | Completes ticket process: marks order fulfilled in Shopify, sets DB flag, renames channel, DMs user, adds customer role, sends transcript. |
+| `/delete-completed`    | Deletes all completed ticket channels (those named `completed-*`). |
+| `/delete-ticket`       | Deletes the current ticket channel and associated ticket record. |
+| `/cancel-order`        | Cancels the order, sets DB status, renames channel. |
+| `/generate-transcript` | Manually creates an HTML transcript, posts to transcript channel (fallback for automation). |
+
+All staff-only commands **require the staff/admin role** as set in each server’s config (see `/config/servers.ts`). Usage is always context-sensitive: e.g., `/delete-ticket` only works in actual ticket channels.
+
+Commands are registered per-server on startup; they are immediately available to users with adequate role permissions.
+
+---
+
+## Configuration
+
+### Server & Channel/Role Mappings
+
+**Switching between production and development:**
+
+In `/src/config/servers.ts`:
+```typescript
+// To use production servers:
+export const servers = prodServers;
+
+// For development/testing:
+export const servers = devServers;
+```
+- Simply pick the correct export . The bot will use the appropriate IDs for channels and servers.
+
+> **Double check before deploying. test/dev server IDs won’t work in production, and you can cause delays or downtime in user support.**
+
+### Environment & Secrets
+
+Create a `.env` file. Must contain at minimum:
+
+```env
+TOKEN=your_discord_bot_token
+CLIENT_ID=your_discord_client_id
+MONGO_URI=your_mongodb_connection_uri
+MONGO_DATABASE_NAME=your_db_name
+SHOPIFY_ADMIN_API_KEY=...
+SHOPIFY_ADMIN_API_SECRET=...
+SHOPIFY_ADMIN_API_TOKEN=...
+SHOPIFY_STOREFRONT_TOKEN=...
+SHOPIFY_URL=https://your-store-url.com
+```
+Other secrets as needed—ensure all referenced in the code exist in your `.env`.
+
+---
+
+## Development & Deployment Guide
+
+### Running the bot in dev mode
+
+**Step 1:** Open `/src/config/servers.ts`.
+
+**Step 2:** Change the dev servers to ones you want to use. This will depend on the server you'll be working with your test bot. Then simply switch to the production servers:
+
+```typescript
+export const servers = prodServers; // for production
 ```
 
-The `stage` property determines the current step in the ticket workflow. Possible values are:
+**Step 3:** Save and proceed to build/start.
 
-- **`languagePreference`**: Waiting for the user to select a language (English or Spanish).
-- **`orderVerification`**: Waiting for the user to provide their order ID.
-- **`timezone`**: Waiting for the user to select their timezone.
-- **`finished`**: The ticket has been completed (all information collected).
+1. **Install dependencies:**
+   ```
+   npm install
+   ```
 
-### Loading and Saving Ticket Stages <a name="loading-and-saving-ticket-stages"></a>
+2. **Compile TypeScript:**
+   ```
+   npm run build
+   ```
+   - This transpiles `/src/` into `/dist/`.
 
-- **`loadTicketStages()`**: Loads the `ticketStages` data from `ticketStages.json` if the file exists. This ensures that ticket data is persisted across bot restarts.
-- **`saveTicketStages()`**: Saves the `ticketStages` object to `ticketStages.json`. The `deletionTimeout` property is excluded from the saved data to avoid issues on restarts.
+3. **Run the bot:**
+   ```
+   npm start
+   ```
+   - Alias for `node ./dist/index.js`
+   - Bot will start, initialize Discord client, connect to DB, and register handlers.
 
-### Ticket Deletion Scheduling <a name="ticket-deletion-scheduling"></a>
+You'll need to stop, recompile and run again each time you make a change. This may seem annoying, but it's not a big deal.
 
-- **`scheduleTicketDeletion(channel, ticketStage)`**: Schedules the deletion of a ticket channel after `TICKET_TIMEOUT` milliseconds of inactivity.
-  - It uses `setTimeout` to create a timer.
-  - Before deleting, it checks if the ticket still exists and is in the expected stage (`orderVerification` or the stage it was when it was created). This prevents accidental deletion if the user is actively working on the ticket.
-  - If the ticket meets the deletion criteria, it's removed from `ticketStages`, the changes are saved, and the channel is deleted using `channel.delete()`.
-  - The `setTimeout` ID is stored in the `deletionTimeout` property of the `ticketStage` object. This allows the timeout to be cleared if the user interacts with the ticket.
+> If adding completely new helpers, it's recommended to test them in a separate "test.ts" file to ensure they work, then implement them into the bot's workflow. Ensuring your helper functions work beforehand will help you avoid restarting the bot to test your changes.
 
-### Stale Ticket Cleanup <a name="stale-ticket-cleanup"></a>
+### Contribution Best Practices
 
-- **`cleanupStaleTickets()`**: This function cleans up tickets that might have become "stale" due to various reasons (e.g., bot restart, errors).
-  - It iterates through all entries in the `ticketStages` object.
-  - For each ticket, it attempts to fetch the corresponding channel using `client.channels.fetch(channelId)`. If the channel doesn't exist (returns `null`), the ticket is considered stale.
-  - Tickets without an `orderId` (and not in `languagePreference`) or in the stage `orderVerification` are also stale.
-  - Stale tickets are removed from `ticketStages`, and the updated data is saved. The associated channel is deleted if it exists.
+- Always use typed imports and explicit types.
+- Use existing modular patterns: add slash commands to `/commands/`, events to `/events/`, new helpers to `/lib/`, translations to `/lang/`.
+- Write new config (servers/games) in `/config/servers.ts` and use the correct exported mapping.
+- Keep your functions, helpers and commands work always on display via console.logs. This helps with debugging and error tracking.
+- Use a linter (ESLint) to catch errors and improve code quality.
 
-## 5. Event Handlers <a name="event-handlers"></a>
+---
 
-### `ready` Event <a name="ready-event"></a>
+## How to Extend the Bot
 
-- Triggered when the bot successfully connects to Discord.
-- Calls `loadTicketStages()` to load existing ticket data.
-- Calls `cleanupStaleTickets()` to remove any stale tickets.
-- Logs a message indicating the bot is logged in (`Logged in as ${client.user.tag}`).
-- Clears and resets the claim message in each configured server's claim channel.
-  - Fetches the claim channel using `client.channels.fetch(channels.claim)`.
-  - Clears existing messages using `bulkDelete`.
-  - Sends a new claim message with the `createClaimEmbed` and `createClaimButton` components.
-- Registers the slash commands for each server.
-  - Iterates through the `servers` configuration.
-  - Fetches the guild using `client.guilds.fetch(serverConfig.guild)`.
-  - Registers the commands using `guild.commands.set(commands)`.
+- **Add a slash command:**  
+  Place a new TS file exporting a standard Discord.js slash command in `/commands/`. It is auto-registered.
 
-### `interactionCreate` Event <a name="interactioncreate-event"></a>
+- **Add a new button / UI workflow:**  
+  Place a TS file with a handler in `/buttons/` and export correct `customId` or `customIdPrefix`.
 
-- Triggered on user interaction (button, command, etc.).
-- **Ticket Creation:**
-  - Checks for button presses with the `customId` starting with `create_ticket_`.
-  - If so, calls `handleTicketCreation(interaction)` to handle the ticket creation process.
-- **Ticket Stage Handling:**
-  - Gets `ticketStage` from `ticketStages` using the channel ID.
-  - **Language Selection:** If the interaction is a button press and the custom ID is `english` or `spanish`, it calls `handleLanguageSelection(interaction, ticketStage)`.
-  - **Timezone Selection:** If the interaction is a button press and the custom ID starts with `timezone_`, it calls `handleTimezoneSelection(interaction, ticketStage)`.
-- **Slash Command Handling:**
-  - If the interaction is a command, it calls `handleSlashCommands(interaction, ticketStage)`.
+- **Add new Discord event logic:**  
+  Add your handler in `/events/`—ensure you export the event name and execution logic as per the existing pattern.
 
-### `messageCreate` Event <a name="messagecreate-event"></a>
+- **Expand database models or logic:**  
+  Change/extend schemas in `/schemas/`, update type definitions in `/types/`, and add business logic in `/lib/`.
 
-- Triggered when a message is sent on any channel the bot can see.
-- Checks if the message is from a bot or if there's no associated ticket in `ticketStages`. If either is true, it returns early.
-- Retrieves the `ticketStage` and server configuration.
-- **Order Verification:** If the `ticketStage.stage` is `orderVerification`, it calls `handleOrderVerification(serverName, message, ticketStage)`.
-- It ensures that it's only processing message of the users of the tickets.
+- **Update config or add a new server/game:**  
+  Add to `/config/servers.ts` and ensure unique key assignment.
 
-### `rateLimited` Event <a name="ratelimited-event"></a>
+---
 
-- Triggered on API rate limit.
-- Logs information about the rate limit. Stuff like the timeout, limit, method, path, route, and whether it's a global rate limit for future debugging.
+## FAQ & Troubleshooting
 
-## 6. Functions <a name="functions"></a>
+### What happened to ticketStages.json?
+- Gone! All ticket and workflow data is now in MongoDB.
 
-The following functions have been updated to reflect the new ticket flow. References to the former Roblox username submission (e.g., `handleUsernameButton` and `handleUsernameSubmission`) have been removed.
+### How do I recover after a bot restart/crash?
+- All tickets/users/stages are persisted to DB and restored automatically.
 
-### `handleTicketCreation(interaction)` <a name="handleticketcreationinteraction"></a>
-
-- Handles the creation of a new ticket channel.
-- **Server Identification:** Extracts the `serverName` from the button's custom ID (e.g., `create_ticket_rivals`).
-- **Ticket Limit:** Checks if the user already has 2 active tickets in the server. If so, sends an ephemeral message and returns.
-- **Channel Creation:** Creates a new text channel with the name `ticket-${interaction.user.username}`.
-- **Permissions:**
-  - Denies access to `@everyone`.
-  - Allows the user who created the ticket to view, send messages, and read history.
-  - Allows the bot to view, send messages, and read history.
-  - Allows users with the `admin-role` to view, send messages, and read history.
-- **Ticket Stage:** Adds a new entry to `ticketStages` with the initial stage set to `languagePreference` and other relevant information.
-- **Confirmation Message:** Sends an ephemeral message to the user confirming the ticket creation.
-- **Welcome Message:** Sends a welcome message (using `createWelcomeEmbed`) and language selection buttons (using `createLanguageSelection`) to the newly created ticket channel.
-- **Deletion Scheduling**: Schedules ticket deletion using `scheduleTicketDeletion()`.
-
-### `handleLanguageSelection(interaction, ticketStage)` <a name="handlelanguageselectioninteraction-ticketstage"></a>
-
-- Handles the user's language selection.
-- **Stage Check:** Ensures the ticket is in the `languagePreference` stage.
-- **User Check**: Ensures that the user who pressed the button created the ticket.
-- **Language Update:** Sets the `language` property in `ticketStages` based on the button pressed (`english` or `spanish`).
-- **Stage Transition:** Updates the `stage` to `orderVerification`.
-- **Prompt:** Sends an embed (using `createOrderVerificationEmbed`) prompting the user to enter their order ID.
-
-### `handleOrderVerification(serverName, message, ticketStage)` <a name="handleorderverificationservername-message-ticketstage"></a>
-
-- Handles the verification of the user's order ID.
-- **Order ID Extraction:** Extracts the order ID from the message content, removing any leading `#`.
-- **Order Retrieval:** Attempts to find the order in the MongoDB database using `orders.findOne({ id: orderId })`.
-- **Order Not Found:** If the order is not found or has been canceled, sends an embed (using `createOrderNotFoundEmbed`) and returns.
-- **Existing Ticket Check:** Checks if a ticket already exists for the same order ID (excluding the current channel). If so, sends an embed (using `createTicketExistsEmbed`), deletes the current ticket, and returns.
-- **Game Mismatch:** Verifies the order's game (if present) against `serverName`.
-  - If there is a game and the server is different (except the Blox Fruits/Bloxy Market combination) it will create and send the `createDifferentGameEmbed`, and it will schedule a deletion after 60 seconds if the orderId is still `null`.
-- **Order Already Claimed:** If the order status is `completed`, deletes the channel and returns.
-- **Missing Reciever Account:** If the order doesn't have a reciever username set on it's properties, it sends an embed (using `createMissingRecieverAccountEmbed`), schedules a deletion after 60 seconds and returns.
-- **Item Category Handling:** Handles edge cases:
-  - `onlyAccountItems`: All items have `deliveryType: 'account'`. Sends `createAccountItemsEmbed`, schedules deletion (60 seconds), and returns.
-  - `onlyPhysicalFruit`: All items have `category: 'Physical Fruit'` and the server _isn't_ `bloxy-market`. Sends `createPhysicalFruitOnlyEmbed`, deletes the ticket, schedules deletion (60 seconds), and returns.
-  - `noPhysicalFruit`: All items _don't_ have `category: 'Physical Fruit'` and the server _is_ `bloxy-market`. Sends `createNoPhysicalFruitEmbed`.
-- **Deletion Timeout**: clears the timeout using `clearDeletionTimeout()`.
-- **Order Found:** If the order is found and valid:
-  - Updates `ticketStages` with `orderId` and the retrieved `orderDetails`.
-  - Sends an embed (using `createOrderFoundEmbed`) confirming the order.
-  - Updates the `stage` to `timezone`.
-  - Sends an embed (using `createTimezoneEmbed`) with it's corresponding buttons.
-
-### `handleTimezoneSelection(interaction, ticketStage)` <a name="handletimezoneselectioninteraction-ticketstage"></a>
-
-- Handles the user's timezone selection.
-- **Stage Check:** Ensures the ticket is in the `timezone` stage.
-- **User Check**: Ensures that the user who pressed the button created the ticket.
-- **Timezone Extraction:** Extracts the selected timezone from the button's custom ID.
-- **Timezone Update:** Updates the `timezone` property in `ticketStages`.
-- **Stage Transition:** Updates the `stage` to `finished`.
-- **Summary:** Creates a summary embed (`createSummaryEmbed`) with the collected information.
-- **Physical Fruit Check:** If the order contains physical fruit (and it isn't the bloxy-market server): create and send a `createPhysicalFruitEmbed`.
-
-* **Deletion Timeout**: clears the timeout using `clearDeletionTimeout()`.
-
-- **Send Summary:** Sends the summary embed to the channel.
-
-### `handleSlashCommands(interaction, ticketStage)` <a name="handleslashcommandsinteraction-ticketstage"></a>
-
-- Handles the bot's slash commands.
-- **Server and Role Check:** Determines the server configuration and checks if the user has the `admin-role`. If not, sends an ephemeral message and returns.
-- **Command Handling:** Uses a series of `if` statements to handle different commands:
-  - **`delete-ticket`**: Deletes the current ticket channel (if it's a ticket channel).
-  - **`cancel-order`**: Marks the order as `cancelled` in the database and renames the channel.
-  - **`fulfill-order`**:
-    - Marks the order as `completed` in the database.
-    - Renames the channel.
-    - Sends a completion message to the user via DM (using `createCompletionMessageEmbed`).
-    - Adds the `customer-role` to the user.
-  - **`delete-completed`**: Deletes all channels that start with `completed-`.
-
-### `clearDeletionTimeout(channelId)` <a name="cleardeletiontimeoutchannelid"></a>
-
-- Clears the deletion timeout for a given channel ID. This is called when user activity is detected, preventing the ticket from being deleted while the user is interacting with it.
-
-## 7. Slash Commands <a name="slash-commands"></a>
-
-The bot provides the following slash commands for staff members:
-
-### `/fulfill-order` <a name="fulfill-order"></a>
-
-- **Description:** Marks a ticket as completed. This also fulfills the order in Shopify.
-- **Permissions:** Requires the `admin-role`.
-- **Usage:** Must be used within a ticket channel.
-- **Actions**:
-  - Gets fullfilment order id through `getFullfilmentOrderId` and `fullFillmentOrder`.
-  - Changes channel's name.
-  - Sets the order status to `completed`.
-  - Sends a DM with a completion message.
-  - Adds a customer role to the user.
-
-### `/delete-completed` <a name="delete-completed"></a>
-
-- **Description:** Deletes all completed tickets (channels named `completed-*`).
-- **Permissions:** Requires the `admin-role`.
-
-### `/delete-ticket` <a name="delete-ticket"></a>
-
-- **Description:** Deletes the current ticket channel.
-- **Permissions:** Requires the `admin-role`.
-- **Usage:** Must be used within a ticket channel.
-
-### `/cancel-order` <a name="cancel-order"></a>
-
-- **Description:** Cancels the order associated with the current ticket.
-- **Permissions:** Requires the `admin-role`.
-- **Usage:** Must be used within a ticket channel.
-- **Actions:**
-  - Sets order status to `cancelled`.
-  - Changes channel's name.
-
-### `/generate-transcript` <a name="generate-transcript"></a>
-
-- **Description:** Generates a transcript of the ticket conversation. This command is only meant to be used in case of an error with the automatic transcript generation. If the ticket doesn't exist in the internal ticketStages data structure, the command will fail.
-- **Permissions:** Requires the `admin-role`.
-- **Usage:** Must be used within a ticket channel.
-- **Actions:**
-  - Fetches the ticket channel's messages.
-  - Generates a transcript of the messages as an HTML document.
-  - Sends the transcript as a file attachment to the channel specified in `server-config.js` under the attribute `transcript`.
-
-## 8. Data Structures <a name="data-structures"></a>
-
-### `servers` <a name="servers"></a>
-
-Configurations for each supported server, including channel IDs and role IDs.
-(More information on [Configuration](#configuration))
-
-### `ticketStages` <a name="ticketstages"></a>
-
-A dictionary maintaining the state of each ticket. With the updated flow, valid `stage` values are:
-- `languagePreference`
-- `orderVerification`
-- `timezone`
-- `finished`
-
-The former `robloxUsername` stage is no longer used.
-
-## 9. External Modules <a name="external-modules"></a>
-
-### `./mongo` <a name="mongo"></a>
-
-- `orderItemSchema`: Defines the schema for items within an order.
-- `ordersSchema`: Defines the schema for the entire order.
-
-- **`orders`**: A Mongoose model for the "orders" collection.
-
-### `./embeds` <a name="embeds"></a>
-
-This module exports functions that return pre-configured `EmbedBuilder` instances or `ActionRowBuilder` instances (for buttons):
-
-- **`createClaimEmbed(client)`**: The initial embed in the claim channel.
-- **`createWelcomeEmbed(client)`**: Welcome message with language selection.
-- **`createOrderVerificationEmbed(language, client)`**: Prompts for order ID.
-- **`createClaimButton(serverName)`**: Button to create a ticket.
-- **`createTimezoneButtons()`**: Buttons for timezone selection.
-- **`createSummaryEmbed(orderDetails, ticketStage, timezone, language, client)`**: Summarizes ticket information.
-- **`createLanguageSelection()`**: Buttons for language selection.
-- **`createOrderNotFoundEmbed(orderId, language, client)`**: Order not found message.
-- **`createOrderFoundEmbed(orderId, language, client)`**: Order found confirmation.
-- **`createTimezoneEmbed(language, client)`**: Embed prompting for timezone.
-- **`createDifferentGameEmbed(orderId, order.game, language, client)`**: Wrong game message.
-- **`createOrderClaimedEmbed(orderId, language, client)`**: Order already claimed message.
-- **`createPhysicalFruitEmbed(language, client)`**: Notification about physical fruits.
-- **`createPhysicalFruitOnlyEmbed(language, client)`**: Message for orders with _only_ physical fruits.
-- **`createAccountItemsEmbed(orderId, language, client)`**: Message for orders with _only_ account items.
-- **`createTicketExistsEmbed(orderId, existingChannelId, language, client)`**: Duplicate ticket message.
-- **`createCompletionMessageEmbed(language, reviewsChannelId, client)`**: Completion message sent via DM.
-- **`createNoPhysicalFruitEmbed(language, client)`**: Message for orders in `bloxy-market` without physical fruits.
-- **`createTranscriptEmbed(ticket, client)`**: Message sent paired with the file attachment in the transcript channel after `/fulfill-order` or `/generate-transcript` is ran.
-
-* **Helper Functions:**
-  - **`getFooter(client)`**: Creates a consistent footer for embeds.
-
-- **Constants:**
-  - `discordServerInvites`: Object mapping server names to Discord invite links.
-  - `gameNames`: Object mapping server names to game names.
-
-### `./shopify` <a name="shopify"></a>
-
-- **`shopify`**: A configured instance of the `@shopify/shopify-api` client.
-- **`shopifySession`**: A Shopify API session.
-- **`getFullfilmentOrderId(orderId)`**: Gets the fulfillment order ID from Shopify using a GraphQL query.
-- **`fullFillmentOrder(fulfillmentOrderId)`**: Marks a fulfillment order as fulfilled in Shopify via GraphQL.
-
-### `./translations` <a name="translations"></a>
-
-Contains translation strings used for multi-language support in embeds.
+### How do I see what's happening internally?
+- The bot uses **rich logging** for key events (handler loading, DB connection, command registration, errors). Tail your console/log output during dev and prod.

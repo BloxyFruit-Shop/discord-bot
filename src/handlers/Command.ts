@@ -1,4 +1,4 @@
-import { Client, DiscordAPIError, Routes, SlashCommandBuilder } from "discord.js";
+import { Client, DiscordAPIError, Routes, SlashCommandBuilder, SlashCommandOptionsOnlyBuilder, SlashCommandSubcommandsOnlyBuilder } from "discord.js";
 import { REST } from "@discordjs/rest";
 import { readdir } from "fs/promises";
 import { join, dirname } from "path";
@@ -23,7 +23,7 @@ const RETRY_GUILD_DELAY = 1000; // Using a slightly longer delay for retries
 const MAX_RETRY_ATTEMPTS = 3;
 
 export default async (client: Client) => {
-    const commands: SlashCommandBuilder[] = [];
+    const commands: (SlashCommandBuilder | SlashCommandOptionsOnlyBuilder | SlashCommandSubcommandsOnlyBuilder)[] = [];
     const commandsDir = join(__dirname, "../commands"); 
 
     try {

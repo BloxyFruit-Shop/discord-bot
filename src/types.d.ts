@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, ModalSubmitInteraction, CacheType, Collection, PermissionResolvable, Message, AutocompleteInteraction, ChatInputCommandInteraction, ButtonInteraction } from "discord.js"
+import { SlashCommandBuilder, ModalSubmitInteraction, CacheType, Collection, PermissionResolvable, Message, AutocompleteInteraction, ChatInputCommandInteraction, ButtonInteraction, SlashCommandSubcommandsOnlyBuilder, SlashCommandOptionsOnlyBuilder } from "discord.js"
 
 export interface ButtonHandler {
     customId?: string; // For matching an exact custom ID
@@ -8,10 +8,13 @@ export interface ButtonHandler {
 }
 
 export interface Command {
-    command: SlashCommandBuilder,
-    execute: (interaction : ChatInputCommandInteraction) => void,
-    autocomplete?: (interaction: AutocompleteInteraction) => void,
-    modal?: (interaction: ModalSubmitInteraction<CacheType>) => void
+    command:
+    | SlashCommandBuilder
+    | SlashCommandSubcommandsOnlyBuilder
+    | SlashCommandOptionsOnlyBuilder;
+    execute: (interaction: ChatInputCommandInteraction) => Promise<void>;
+    autocomplete?: (interaction: AutocompleteInteraction) => void;
+    modal?: (interaction: ModalSubmitInteraction<CacheType>) => void;
 }
 
 export interface BotEvent {
