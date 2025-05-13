@@ -1,6 +1,7 @@
 export type ServerKey =
   | 'rivals'
   | 'anime-vanguards'
+  | 'grow-a-garden'
   | 'blox-fruits'
   | 'bloxy-market'
   | 'pets-go'
