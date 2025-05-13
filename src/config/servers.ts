@@ -20,6 +20,15 @@ const prodServers: Record<ServerKey, ServerConfig> = {
     'reviews-channel': '1307851882714107976',
     transcript: '1353435146799288320',
   },
+  'grow-a-garden': {
+    name: 'grow-a-garden',
+    guild: '1308118667644506254',
+    claim: '1308118668030251051',
+    'admin-role': '1308118667644506263',
+    'customer-role': '1308118667644506257',
+    'reviews-channel': '1308118668030251052',
+    transcript: '1371972742592725013',
+  },
   'blox-fruits': {
     name: 'blox-fruits',
     guild: '1227899053858099211',
@@ -161,6 +170,15 @@ const devServers = {
   },
   'murder-mystery-2': {
     name: 'murder-mystery-2',
+    guild: '1350533330327830588',
+    claim: '1350533485512753307',
+    'admin-role': '1350533529028661371',
+    'customer-role': '1350533583130988574',
+    'reviews-channel': '1350533807035514941',
+    transcript: '1350576550084349962'
+  },
+  'grow-a-garden': {
+    name: 'grow-a-garden',
     guild: '1350533330327830588',
     claim: '1350533485512753307',
     'admin-role': '1350533529028661371',
