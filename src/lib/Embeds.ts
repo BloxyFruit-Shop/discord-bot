@@ -4,6 +4,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
   type Client,
+  ColorResolvable,
 } from 'discord.js';
 import { getTranslations, type LanguageCode } from '~/lang/index.js';
 import { serverInvites } from '~/config/server-invites.js';
@@ -579,6 +580,48 @@ export const createTimezoneRecordedEmbed = (
     .setColor('#4ECDC4')
     .setTitle(t.TIMEZONE_RECORDED_TITLE)
     .setDescription(t.TIMEZONE_RECORDED_CONTENT.replace("{timezone}", timezone))
+    .setFooter(getFooter(client))
+    .setTimestamp();
+};
+
+/**
+ * Creates an embed to notify the user about the risk level of their order.
+ * @param riskLevel - The risk level of the order (LOW, MEDIUM, HIGH)
+ * @returns The risk order embed
+ */
+export const createRiskOrderEmbed = (riskLevel: string | null) => {
+  const colors: Record<string, ColorResolvable> = {
+    LOW: '#4ECDC4',
+    MEDIUM: '#FFD93D',
+    HIGH: '#FF6B6B',
+    default: '#FF6B6B'
+  };
+  const messages = {
+    LOW: 'This order has been flagged as **low** risk. Procceed normally.',
+    MEDIUM: 'This order has been flagged as **medium** risk. Please review the order details carefully on Shopify before proceeding.',
+    HIGH: 'This order has been flagged as **high** risk. Please review the order details carefully on Shopify before proceeding.',
+    default: 'We couldn\'t determine the risk level of this order. Please review the order details carefully on Shopify before proceeding.'
+  };
+  const color = colors[riskLevel?.toUpperCase() as keyof typeof colors] || colors.default;
+
+  return new EmbedBuilder()
+    .setColor(color)
+    .setTitle('Order Risk Warning')
+    .setDescription(messages[riskLevel?.toUpperCase() as keyof typeof messages] || messages.default)
+    .setThumbnail('https://cdn-icons-png.flaticon.com/512/5451/5451854.png');
+};
+
+/**
+ * Creates the embed shown when an order is cancelled.
+ * @param lang - Language code for translations
+ * @param client - The Discord client instance
+ * @return The order cancelled embed
+*/
+export const createCancelRefundEmbed = (lang: LanguageCode = 'en', client: Client<true>): EmbedBuilder => {
+  const t = getTranslations(lang);
+  return new EmbedBuilder()
+    .setColor('#FF6B6B')
+    .setTitle(t.ORDER_CANCELLED)
     .setFooter(getFooter(client))
     .setTimestamp();
 };

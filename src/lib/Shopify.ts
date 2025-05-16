@@ -87,6 +87,24 @@ export enum OrderCancelReason {
     OTHER = "OTHER",
 }
 
+export interface OrderStatusDetails {
+    riskLevel: string | null;
+    isCancelled: boolean;
+    financialStatus: string | null; // "REFUNDED", "PARTIALLY_REFUNDED", "PAID", etc
+}
+
+interface OrderStatusDetailsResponse {
+    order?: {
+        id: string;
+        riskLevel?: string | null;
+        cancelledAt?: string | null;
+        displayFinancialStatus?: string | null;
+    };
+    userErrors?: Array<{
+        field: string[];
+        message: string;
+    }>;
+}
 // Module State
 let shopifyInstance: Shopify | null = null;
 let shopifySession: Session | null = null;
@@ -435,8 +453,8 @@ export const cancelOrder = async (
         }
 
         if (!response.errors && (!userErrors || userErrors.length === 0)) {
-             console.log(color("text", `🛍️ Successfully requested cancellation for Order ID: ${orderId}. Check Shopify Admin to confirm status.`));
-             return true;
+            console.log(color("text", `🛍️ Successfully requested cancellation for Order ID: ${orderId}. Check Shopify Admin to confirm status.`));
+            return true;
         } else {
             console.warn(color("warn", `🛍️ Cancellation request for ${orderId} completed but contained GraphQL or User errors. See logs above.`));
             return false;
@@ -448,12 +466,12 @@ export const cancelOrder = async (
             console.error(color("error", `Type: ShopifyError`));
             console.error(color("error", `Message: ${error.message}`));
             if (error.message) {
-                 console.error(color("error", `Error message: ${JSON.stringify(error.message, null, 2)}`));
+                console.error(color("error", `Error message: ${JSON.stringify(error.message, null, 2)}`));
             }
             if (error.cause) {
-                 console.error(color("error", `Error cause: ${JSON.stringify(error.cause, null, 2)}`));
+                console.error(color("error", `Error cause: ${JSON.stringify(error.cause, null, 2)}`));
             }
-             if (error.stack) {
+            if (error.stack) {
                 console.error(color("error", `Stack Trace:\n${error.stack}`));
             }
         } else if (error instanceof Error) {
@@ -468,5 +486,68 @@ export const cancelOrder = async (
         }
         console.error(color("error", `--- End Error Details for Order ID: ${orderId} ---`));
         return false;
+    }
+};
+
+/**
+ * Retrieves the overall risk level, cancellation status, and financial status for a given Shopify Order ID.
+ * @param orderId The numeric part of the Shopify Order ID.
+ * @returns Promise<OrderStatusDetails | null> An object containing the riskLevel, isCancelled, and financialStatus,
+ * or null if the order is not found or an error occurs.
+ */
+export const getOrderStatusDetails = async (orderId: string | number): Promise<OrderStatusDetails | null> => {
+    const { client, api } = ensureInitialized();
+    const shopifyOrderId = `gid://shopify/Order/${orderId}`;
+
+    const query = `
+      query GetOrderStatusDetails($orderId: ID!) {
+        order(id: $orderId) {
+          id
+          riskLevel
+          cancelledAt
+          displayFinancialStatus # User-friendly financial status
+        }
+      }`;
+
+    try {
+        console.log(color("text", `🛍️ Fetching order status details for Order ID: ${orderId}`));
+        const response = await client.request<OrderStatusDetailsResponse>(query, {
+            variables: { orderId: shopifyOrderId },
+        });
+
+        if (response.errors) {
+            console.error(color("error", `🛍️ GraphQL Error fetching order status details for Order ID ${orderId}:`), response.errors);
+            const errorMessage = response.errors.message || JSON.stringify(response.errors);
+            throw new ShopifyError(`GraphQL Error: ${errorMessage}`);
+        }
+
+        if (response.data?.userErrors && response.data.userErrors.length > 0) {
+            console.error(color("error", `🛍️ UserErrors fetching order status details for Order ID ${orderId}:`), response.data.userErrors);
+            return null;
+        }
+
+        if (!response.data?.order) {
+            console.warn(color("warn", `🛍️ No order found with ID: ${orderId} when fetching status details.`));
+            return null;
+        }
+
+        const orderData = response.data.order;
+        const overallRiskLevel = orderData.riskLevel ?? null;
+        const isCancelled = !!orderData.cancelledAt;
+        const financialStatus = orderData.displayFinancialStatus ?? null;
+
+        console.log(color("text", `🛍️ Successfully fetched status for Order ID: ${orderId}. Risk: ${overallRiskLevel}, Cancelled: ${isCancelled}, Financial: ${financialStatus}`));
+
+        return {
+            riskLevel: overallRiskLevel,
+            isCancelled: isCancelled,
+            financialStatus: financialStatus,
+        };
+    } catch (error) {
+        console.error(color("error", `🛍️ Failed to get order status details for Order ID ${orderId}: ${error instanceof Error ? error.message : String(error)}`));
+        if (error instanceof ShopifyError && error.message) {
+            console.error(color("error", `🛍️ ShopifyError details: ${error.message}`));
+        }
+        throw error;
     }
 };
