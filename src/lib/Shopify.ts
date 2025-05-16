@@ -448,6 +448,9 @@ export const cancelOrder = async (
 
         const userErrors = response.data?.orderCancel?.userErrors;
         if (userErrors && userErrors.length > 0) {
+            if (userErrors.some(e => e.message == "Cannot cancel an order that has already been canceled")) {
+                return true; // If the order is already cancelled, we consider it a success
+            }
             console.error(color("error", `🛍️ UserErrors during order cancellation for ${orderId}:`), userErrors.map(e => `${e.field?.join('.') || 'general'}: ${e.message}`).join('; '));
             return false;
         }
