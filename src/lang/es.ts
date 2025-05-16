@@ -65,4 +65,5 @@ export const es: TranslationSet = {
     TICKET_WRONG_STAGE: '❌ Este ticket no está en la etapa correcta para esta acción.',
     TICKET_NOT_FOUND_GENERIC: '❌ No pudimos encontrar este ticket.',
     TIMEZONE_SELECTED_CONFIRMATION: '✅ Tu zona horaria ha sido registrada.',
+    ORDER_CANCELLED: '❌ Se ha detectado que el pedido ha sido cancelado o reembolsado.',
 };

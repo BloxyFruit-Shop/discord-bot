@@ -78,4 +78,5 @@ export interface TranslationSet {
   // Generic
   GENERIC_ERROR: string;
   TICKET_NOT_FOUND_GENERIC: string;
+  ORDER_CANCELLED: string;
 }
