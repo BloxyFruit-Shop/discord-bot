@@ -20,11 +20,14 @@ import {
   createNoPhysicalFruitEmbed,
   createOrderFoundEmbed,
   createTimezoneEmbed,
-  createTimezoneButtons
+  createTimezoneButtons,
+  createRiskOrderEmbed,
+  createCancelRefundEmbed
 } from '~/lib/Embeds.js';
 import { getTranslations } from '~/lang/index.js';
 import type { ServerKey } from '~/types/config.js';
 import type { IOrder } from '~/schemas/Order.js';
+import { getOrderStatusDetails, initializeShopify } from '~/lib/Shopify.js';
 
 /*
  * This handles the order verification stage of the ticketing system.
@@ -138,6 +141,38 @@ const event: BotEvent = {
         return;
       }
 
+      let orderStatus;
+      try {
+        await initializeShopify();
+        orderStatus = await getOrderStatusDetails(orderId);
+      } catch {
+        console.error(color('error', `[MessageCreate] Error fetching order status details for Order ID: ${orderId}`));
+        orderStatus = null;
+        const embed = createRiskOrderEmbed(null);
+        await message.channel.send({ embeds: [embed] });
+      }
+
+      if (orderStatus && (orderStatus.isCancelled || orderStatus?.financialStatus === 'REFUNDED' || orderStatus?.financialStatus === 'PARTIALLY_REFUNDED')) {
+        const embed = createCancelRefundEmbed(lang, client);
+        await message.channel.send({ embeds: [embed] });
+
+        const Order = getModel('Order');
+        const updatedOrder = await Order.findOneAndUpdate(
+          { id: orderId },
+          { $set: { status: 'cancelled', updatedAt: new Date() } },
+          { new: true }
+        ).exec();
+
+        if (!updatedOrder) {
+          console.error(color("error", `[MessageCreate] Order ${orderId} failed to find/update local DB record. Further investigation needed.`));
+        } else {
+          console.log(color("text", `[MessageCreate] Local DB order status updated to 'cancelled' for order ${orderId}.`));
+        }
+
+        await deleteTicketByChannelId(message.channel.id);
+        return;
+      }
+
       // Verification Successful
       console.log(color('text', `[MessageCreate] Order ${orderId} verified for ticket ${ticket.channelId}. Proceeding to timezone stage.`));
 
@@ -158,6 +193,11 @@ const event: BotEvent = {
       // Send confirmation and next step prompt
       const orderFoundEmbed = createOrderFoundEmbed(orderId, lang, client);
       await message.channel.send({ embeds: [orderFoundEmbed] });
+
+      if (orderStatus && orderStatus.riskLevel != 'LOW') {
+        const embed = createRiskOrderEmbed(orderStatus.riskLevel);
+        await message.channel.send({ embeds: [embed] });
+      }
 
       const timezoneEmbed = createTimezoneEmbed(lang, client);
       const timezoneButtons = createTimezoneButtons();
