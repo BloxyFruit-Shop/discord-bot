@@ -9,6 +9,6 @@ export const serverInvites: Record<ServerKey, string> = {
   'anime-vanguards': 'https://discord.gg/5gwAZZpXSw',
   'king-legacy': 'https://discord.gg/8sjBPzzxwA',
   'blue-lock': 'https://discord.gg/u53cFFR95H',
-  'anime-adventures': 'https://discord.gg/xhEXNBkS7w',
+  'steal-brainrot': 'https://discord.gg/tZmHFhud',
   'murder-mystery-2': 'https://discord.gg/WG826HDXbe',
 } as const;

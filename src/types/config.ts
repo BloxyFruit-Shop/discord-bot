@@ -7,7 +7,7 @@ export type ServerKey =
   | 'pets-go'
   | 'king-legacy'
   | 'blue-lock'
-  | 'anime-adventures'
+  | 'steal-brainrot'
   | 'murder-mystery-2';
 
 export interface ServerConfig {
