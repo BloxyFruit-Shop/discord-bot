@@ -9,6 +9,6 @@ export const gameNames: Record<ServerKey, string> = {
   'anime-vanguards': 'Anime Vanguards',
   'king-legacy': 'King Legacy',
   'blue-lock': 'Blue Lock: Rivals',
-  'anime-adventures': 'Anime Adventures',
+  'steal-brainrot': 'Steal a Brainrot',
   'murder-mystery-2': 'Murder Mystery 2',
 } as const;

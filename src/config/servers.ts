@@ -74,8 +74,8 @@ const prodServers: Record<ServerKey, ServerConfig> = {
     'reviews-channel': '1352847268725919827',
     transcript: '1353434501669326949',
   },
-  'anime-adventures': {
-    name: 'anime-adventures',
+  'steal-brainrot': {
+    name: 'steal-brainrot',
     guild: '1352842797685932032',
     claim: '1352848080675930203',
     'admin-role': '1354272322877657341',
@@ -159,8 +159,8 @@ const devServers = {
     'reviews-channel': '1350533807035514941',
     transcript: '1350576550084349962'
   },
-  'anime-adventures': {
-    name: 'anime-adventures',
+  'steal-brainrot': {
+    name: 'steal-brainrot',
     guild: '1350533330327830588',
     claim: '1350533485512753307',
     'admin-role': '1350533529028661371',
