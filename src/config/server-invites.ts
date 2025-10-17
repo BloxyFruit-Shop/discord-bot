@@ -10,5 +10,5 @@ export const serverInvites: Record<ServerKey, string> = {
   'king-legacy': 'https://discord.gg/8sjBPzzxwA',
   'blue-lock': 'https://discord.gg/u53cFFR95H',
   'steal-brainrot': 'https://discord.gg/xhEXNBkS7w',
-  'murder-mystery-2': 'https://discord.gg/WG826HDXbe',
+  'plants-vs-brainrot': 'https://discord.gg/u4Pc84kT',
 } as const;

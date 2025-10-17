@@ -83,14 +83,14 @@ const prodServers: Record<ServerKey, ServerConfig> = {
     'reviews-channel': '1352848172640108545',
     transcript: '1353433987686600724',
   },
-  'murder-mystery-2': {
-    name: 'murder-mystery-2',
-    guild: '1352855572600459304',
-    claim: '1353083592678309908',
-    'admin-role': '1354272089112055990',
-    'customer-role': '1353085882890059816',
-    'reviews-channel': '1353083614124048526',
-    transcript: '1353434087406305290',
+  'plants-vs-brainrot': {
+    name: 'plants-vs-brainrot',
+    guild: '1428564165450268745',
+    claim: '1428564386192293969',
+    'admin-role': '1428564992285868102',
+    'customer-role': '1428566680686301184',
+    'reviews-channel': '1428566866783109151',
+    transcript: '1428564348183511130',
   },
 } as const;
 
@@ -168,8 +168,8 @@ const devServers = {
     'reviews-channel': '1350533807035514941',
     transcript: '1350576550084349962'
   },
-  'murder-mystery-2': {
-    name: 'murder-mystery-2',
+  'plants-vs-brainrot': {
+    name: 'plants-vs-brainrot',
     guild: '1350533330327830588',
     claim: '1350533485512753307',
     'admin-role': '1350533529028661371',

@@ -10,5 +10,5 @@ export const gameNames: Record<ServerKey, string> = {
   'king-legacy': 'King Legacy',
   'blue-lock': 'Blue Lock: Rivals',
   'steal-brainrot': 'Steal a Brainrot',
-  'murder-mystery-2': 'Murder Mystery 2',
+  'plants-vs-brainrot': 'Plants vs Brainrot',
 } as const;

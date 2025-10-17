@@ -8,7 +8,7 @@ export type ServerKey =
   | 'king-legacy'
   | 'blue-lock'
   | 'steal-brainrot'
-  | 'murder-mystery-2';
+  | 'plants-vs-brainrot';
 
 export interface ServerConfig {
   readonly name: ServerKey;
