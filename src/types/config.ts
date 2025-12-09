@@ -4,7 +4,7 @@ export type ServerKey =
   | 'grow-a-garden'
   | 'blox-fruits'
   | 'bloxy-market'
-  | 'pets-go'
+  | 'the-forge'
   | 'king-legacy'
   | 'blue-lock'
   | 'steal-brainrot'

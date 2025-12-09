@@ -47,14 +47,14 @@ const prodServers: Record<ServerKey, ServerConfig> = {
     'reviews-channel': '1244336701652865055',
     transcript: '1353454547972128838',
   },
-  'pets-go': {
-    name: 'pets-go',
-    guild: '1307808175587725322',
-    claim: '1307818267716620348',
-    'admin-role': '1307820453183623239',
-    'customer-role': '1308895158586179595',
-    'reviews-channel': '1307818339938336768',
-    transcript: '1353435279473639515',
+  'the-forge': {
+    name: 'the-forge',
+    guild: '1447770949809078324',
+    claim: '1447770956679352570',
+    'admin-role': '1447770950262325386',
+    'customer-role': '1447770950249611267',
+    'reviews-channel': '1447770956872286291',
+    transcript: '1447770957421871117',
   },
   'king-legacy': {
     name: 'king-legacy',
@@ -132,8 +132,8 @@ const devServers = {
     'reviews-channel': '1350533807035514941',
     transcript: '1350576550084349962'
   },
-  'pets-go': {
-    name: 'pets-go',
+  'the-forge': {
+    name: 'the-forge',
     guild: '1350533330327830588',
     claim: '1350533485512753307',
     'admin-role': '1350533529028661371',

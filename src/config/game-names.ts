@@ -5,7 +5,7 @@ export const gameNames: Record<ServerKey, string> = {
   'blox-fruits': 'Blox Fruits',
   'bloxy-market': 'Blox Fruits Physicals',
   'grow-a-garden': 'Grow a Garden',
-  'pets-go': 'Pets Go',
+  'the-forge': 'The Forge',
   'anime-vanguards': 'Anime Vanguards',
   'king-legacy': 'King Legacy',
   'blue-lock': 'Blue Lock: Rivals',

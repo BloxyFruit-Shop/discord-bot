@@ -12,7 +12,6 @@
         "dotenv": "^16.4.5",
         "mongoose": "^8.8.1",
         "ts-node": "^10.9.2",
-        "tsc-alias": "^1.8.15",
         "tsconfig-paths": "^4.2.0",
       },
       "devDependencies": {
@@ -21,6 +20,7 @@
         "eslint-plugin-import": "^2.31.0",
         "eslint-plugin-unicorn": "^58.0.0",
         "prettier": "^3.5.3",
+        "tsc-alias": "^1.8.15",
         "typescript": "^5.8.3",
       },
     },
